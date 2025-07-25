@@ -28,11 +28,8 @@
 .login-link-visual:hover {
   background: rgba(32,77,71,0.25);
 }
-.login-container {
-  display: flex;
-  min-height: 100vh;
-  background: #f7fafd;
-}
+/* ...existing code... */
+
 
 .login-form-section {
   flex: 1;

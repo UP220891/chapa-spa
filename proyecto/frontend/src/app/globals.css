@@ -1,6 +1,7 @@
 @import '../styles/login.css';
 @import '../styles/hero.css';
 @import '../styles/register.css';
+@import '../styles/footer.css';
 @import "tailwindcss";
 
 :root {
