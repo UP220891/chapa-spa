@@ -1,13 +1,13 @@
 .footer-simple {
   background: linear-gradient(180deg, #204d47 80%, #1A3C3C 100%);
   color: #fff;
-  padding: 3rem 1rem 1.5rem 1rem;
+  padding: 1.5rem 1rem 1.2rem 1rem;
   width: 100%;
   text-align: center;
   font-family: 'Montserrat', 'Open Sans', Arial, sans-serif;
   box-shadow: 0 -4px 24px rgba(32, 77, 71, 0.12);
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
+  border-radius: 0;
+  margin-top: 0;
 }
 
 .footer-simple-title {
