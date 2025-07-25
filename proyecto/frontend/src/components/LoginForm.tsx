@@ -2,24 +2,68 @@ import React from 'react';
 
 const LoginForm = () => {
   return (
-    <div className="login-container">
-      <div className="login-form-section">
-        <h2 className="login-title">CHAPASPA´S</h2>
-        <h1 className="login-heading">Iniciar sesión</h1>
-        <form className="login-form">
-          <label htmlFor="email">Email</label>
-          <input type="email" id="email" placeholder="email" />
-          <label htmlFor="password">Contraseña</label>
-          <input type="password" id="password" placeholder="Ingresar contraseña" />
-          <button type="submit" className="login-btn">Iniciar sesión</button>
-        </form>
-        <div className="login-register">
-          <span>¿No tienes cuenta?</span>
-          <a href="/register" className="login-link">Regístrate aquí</a>
+    <div style={{ minHeight: '100vh', background: '#f7fafd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.12)', borderRadius: '24px', background: '#fff', display: 'flex', overflow: 'hidden', minWidth: '800px', maxWidth: '1100px', margin: 'auto', padding: '2.5rem 2rem' }}>
+        <div className="login-form-section" style={{ borderRadius: '24px 0 0 24px', minWidth: '340px', maxWidth: '480px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1.5rem' }}>
+          <h2 className="login-title" style={{ fontSize: '1.1rem', fontWeight: 700, color: '#204d47', letterSpacing: '0.08em', marginBottom: '0.7rem', textAlign: 'center' }}>CHAPASPA´S</h2>
+          <h1 className="login-heading" style={{ fontSize: '1.7rem', fontWeight: 800, color: '#204d47', marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.1' }}>Iniciar sesión</h1>
+          <form className="login-form" style={{ gap: '0.7rem' }}>
+            <label htmlFor="email" style={{ fontSize: '0.98rem', fontWeight: 500, color: '#357a6c', marginBottom: '0.1rem' }}>Email</label>
+            <input type="email" id="email" placeholder="Ingresar Email" autoComplete="username" style={{ padding: '0.7rem', fontSize: '1rem', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
+            <label htmlFor="password" style={{ fontSize: '0.98rem', fontWeight: 500, color: '#357a6c', marginBottom: '0.1rem' }}>Contraseña</label>
+            <input type="password" id="password" placeholder="Ingresar Contraseña" autoComplete="current-password" style={{ padding: '0.7rem', fontSize: '1rem', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
+            <button
+              type="submit"
+              className="login-btn login-btn-visual"
+              style={{
+                fontSize: '1.1rem',
+                fontWeight: 700,
+                borderRadius: '8px',
+                marginTop: '0.7rem',
+                letterSpacing: '0.04em',
+              }}
+            >
+              Iniciar sesión
+            </button>
+          </form>
+          <div
+            className="login-register login-register-visual"
+            style={{
+              marginTop: '1.2rem',
+              borderRadius: '8px',
+              padding: '0.6rem 0.6rem',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              background: 'linear-gradient(90deg, #4b8a8a 60%, #357a6c 100%)',
+              boxShadow: '0 2px 8px rgba(32,77,71,0.10)',
+            }}
+          >
+            <a
+              href="/register"
+              className="login-link login-link-visual"
+              style={{
+                fontWeight: 700,
+                fontSize: '1.15rem',
+                padding: '0.6rem 1.5rem',
+                borderRadius: '8px',
+                background: 'rgba(32,77,71,0.18)',
+                color: '#fff',
+                textDecoration: 'none',
+                boxShadow: '0 2px 8px rgba(32,77,71,0.10)',
+                letterSpacing: '0.04em',
+                transition: 'background 0.2s, transform 0.2s',
+                textAlign: 'center',
+                display: 'block',
+              }}
+            >
+              Regístrate aquí
+            </a>
+          </div>
         </div>
-      </div>
-      <div className="login-image-section">
-        <img src="/images/login.png" alt="Spa login" className="login-image" />
+        <div className="login-image-section" style={{ borderRadius: '0 24px 24px 0', minWidth: '340px', maxWidth: '480px', overflow: 'hidden', display: 'flex', alignItems: 'stretch', justifyContent: 'center', background: '#fff', padding: 0 }}>
+          <img src="/images/login.png" alt="Spa login" className="login-image" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '4px solid #fff', borderRadius: '0 24px 24px 0', objectFit: 'cover', objectPosition: 'center', width: '100%', height: '100%' }} />
+        </div>
       </div>
     </div>
   );

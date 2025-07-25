@@ -1,3 +1,33 @@
+.login-btn-visual {
+  background: linear-gradient(90deg, #204d47 60%, #357a6c 100%) !important;
+  box-shadow: 0 4px 16px rgba(32,77,71,0.13);
+  border: none;
+  color: #fff;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  cursor: pointer;
+}
+.login-btn-visual:hover {
+  background: linear-gradient(90deg, #357a6c 60%, #204d47 100%) !important;
+  transform: scale(1.04);
+  box-shadow: 0 8px 24px rgba(32,77,71,0.18);
+}
+
+.login-register-visual {
+  background: linear-gradient(90deg, #4b8a8a 60%, #357a6c 100%) !important;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(32,77,71,0.10);
+}
+
+.login-link-visual {
+  color: #fff !important;
+  text-decoration: underline;
+  font-weight: 700;
+  background: rgba(32,77,71,0.12);
+  transition: background 0.2s;
+}
+.login-link-visual:hover {
+  background: rgba(32,77,71,0.25);
+}
 .login-container {
   display: flex;
   min-height: 100vh;
