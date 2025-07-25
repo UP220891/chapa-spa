@@ -15,8 +15,8 @@ const Navbar = () => (
     </div>
     <nav className="flex-1 flex justify-end">
       <ul className="flex gap-6 text-gray-700 text-sm font-medium">
-        <li><a href="#" className="hover:text-pink-600">Iniciar sesión</a></li>
-        <li><a href="#" className="hover:text-pink-600">Registrarse</a></li>
+        <li><a href="/login" className="hover:text-pink-600">Iniciar sesión</a></li>
+        <li><a href="/register" className="hover:text-pink-600">Registrarse</a></li>
         <li><a href="#" className="hover:text-pink-600">Cerrar sesión</a></li>
       </ul>
     </nav>

@@ -33,16 +33,64 @@ const RegisterForm = () => {
               <label htmlFor="birthdate" className="register-label">Fecha de nacimiento</label>
               <input type="date" id="birthdate" className="register-input" required />
             </div>
-            <button type="submit" className="register-button" style={{ marginTop: '1.2rem', marginBottom: '0.7rem' }}>Registrarse</button>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '2.2rem', marginTop: '2rem', marginBottom: '1.2rem', justifyContent: 'center' }}>
+              <button
+                type="submit"
+                className="register-button"
+                style={{
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 16px 0 rgba(31,38,135,0.13)',
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  padding: '0.8rem 2.2rem',
+                  border: 'none',
+                  background: 'linear-gradient(90deg, #204d47 60%, #357a6c 100%)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  transition: 'transform 0.18s, box-shadow 0.18s',
+                  letterSpacing: '0.04em',
+                }}
+                onMouseOver={e => {
+                  e.currentTarget.style.transform = 'scale(1.04)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px 0 rgba(31,38,135,0.18)';
+                }}
+                onMouseOut={e => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(31,38,135,0.13)';
+                }}
+              >
+                Registrarse
+              </button>
+              <button
+                type="button"
+                className="register-button"
+                style={{
+                  background: '#fff',
+                  color: '#204d47',
+                  border: '2px solid #204d47',
+                  borderRadius: '10px',
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  padding: '0.8rem 2.2rem',
+                  boxShadow: '0 4px 16px 0 rgba(31,38,135,0.13)',
+                  cursor: 'pointer',
+                  transition: 'transform 0.18s, box-shadow 0.18s',
+                  letterSpacing: '0.04em',
+                }}
+                onClick={() => window.location.href = '/login'}
+                onMouseOver={e => {
+                  e.currentTarget.style.transform = 'scale(1.04)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px 0 rgba(31,38,135,0.18)';
+                }}
+                onMouseOut={e => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(31,38,135,0.13)';
+                }}
+              >
+                Ir al login
+              </button>
+            </div>
           </form>
-          <button
-            type="button"
-            className="register-button"
-            style={{ background: '#fff', color: '#204d47', border: '2px solid #204d47', marginTop: '0.7rem', marginBottom: '0.2rem' }}
-            onClick={() => window.location.href = '/login'}
-          >
-            Ir al login
-          </button>
         </div>
         <div className="register-image-section" style={{ flex: '1 1 0%', flexShrink: 0, minWidth: '400px', maxWidth: '600px', display: 'flex', alignItems: 'stretch', justifyContent: 'stretch', background: 'transparent', padding: '0', marginLeft: '0', height: '100%' }}>
           <img src="/images/register.png" alt="Registro" className="register-image" style={{ borderRadius: '0 32px 32px 0', objectFit: 'cover', width: '100%', height: '100%', minHeight: '800px', maxHeight: '800px', boxShadow: 'none' }} />
