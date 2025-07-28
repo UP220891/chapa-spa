@@ -1,10 +1,9 @@
-const sql = require('mssql');
-const dbConfig = require('../config/database');
+const { sql, poolPromise } = require('../config/database');
 
 // Obtener todos los servicios
 async function getServicios() {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request().query('SELECT * FROM C_Servicios');
     return result.recordset;
   } catch (err) {
@@ -15,7 +14,7 @@ async function getServicios() {
 // Obtener un servicio por ID
 async function getServicioById(id_servicio) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_servicio', sql.Int, id_servicio)
       .query('SELECT * FROM C_Servicios WHERE id_servicio = @id_servicio');
@@ -28,7 +27,7 @@ async function getServicioById(id_servicio) {
 // Crear un nuevo servicio
 async function createServicio(data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('nombre_servicio', sql.VarChar(50), data.nombre_servicio)
       .input('descripcion', sql.Text, data.descripcion || null)
@@ -44,7 +43,7 @@ async function createServicio(data) {
 // Actualizar un servicio
 async function updateServicio(id_servicio, data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_servicio', sql.Int, id_servicio)
       .input('nombre_servicio', sql.VarChar(50), data.nombre_servicio)
@@ -61,7 +60,7 @@ async function updateServicio(id_servicio, data) {
 // Eliminar un servicio
 async function deleteServicio(id_servicio) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_servicio', sql.Int, id_servicio)
       .query('DELETE FROM C_Servicios WHERE id_servicio = @id_servicio');

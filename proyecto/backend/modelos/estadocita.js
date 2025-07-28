@@ -1,10 +1,9 @@
-const sql = require('mssql');
-const dbConfig = require('../config/database');
+const { sql, poolPromise } = require('../config/database');
 
 // Obtener todos los estados de cita
 async function getEstadosCita() {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request().query('SELECT * FROM C_EstadoCita');
     return result.recordset;
   } catch (err) {
@@ -15,7 +14,7 @@ async function getEstadosCita() {
 // Obtener un estado de cita por ID
 async function getEstadoCitaById(id_estado_cita) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_estado_cita', sql.Int, id_estado_cita)
       .query('SELECT * FROM C_EstadoCita WHERE id_estado_cita = @id_estado_cita');
@@ -28,7 +27,7 @@ async function getEstadoCitaById(id_estado_cita) {
 // Crear un nuevo estado de cita
 async function createEstadoCita(data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('nombre_estado', sql.VarChar(50), data.nombre_estado)
       .query('INSERT INTO C_EstadoCita (nombre_estado) VALUES (@nombre_estado)');
@@ -41,7 +40,7 @@ async function createEstadoCita(data) {
 // Actualizar un estado de cita
 async function updateEstadoCita(id_estado_cita, data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_estado_cita', sql.Int, id_estado_cita)
       .input('nombre_estado', sql.VarChar(50), data.nombre_estado)
@@ -55,7 +54,7 @@ async function updateEstadoCita(id_estado_cita, data) {
 // Eliminar un estado de cita
 async function deleteEstadoCita(id_estado_cita) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_estado_cita', sql.Int, id_estado_cita)
       .query('DELETE FROM C_EstadoCita WHERE id_estado_cita = @id_estado_cita');
