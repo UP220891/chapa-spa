@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const { sql, poolPromise } = require('./config/database');
 const cors = require('cors'); // Para evitar problemas con el frontend
