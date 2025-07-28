@@ -21,6 +21,11 @@ app.use(express.json());
 
 // Rutas API REST
 
+// Ruta raíz personalizada
+app.get('/', (req, res) => {
+  res.send('API de Chapa-SPA funcionando 🚀');
+});
+
 
 
 app.use('/api/empleados', empleadosRoutes);
