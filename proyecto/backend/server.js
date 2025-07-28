@@ -3,8 +3,10 @@ const { sql, poolPromise } = require('./config/database');
 const cors = require('cors'); // Para evitar problemas con el frontend
 
 
+
 const empleadosRoutes = require('./rutas/empleados');
 const clientesRoutes = require('./rutas/clientes');
+const citasRoutes = require('./rutas/citas');
 
 const app = express();
 
@@ -14,8 +16,10 @@ app.use(cors());
 app.use(express.json());
 
 // Rutas API REST
+
 app.use('/api/empleados', empleadosRoutes);
 app.use('/api/clientes', clientesRoutes);
+app.use('/api/citas', citasRoutes);
 
 
 // Manejador de errores global
