@@ -1,10 +1,9 @@
-const sql = require('mssql');
-const dbConfig = require('../config/database');
+const { sql, poolPromise } = require('../config/database');
 
 // Obtener todas las citas
 async function getCitas() {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request().query('SELECT * FROM T_Citas');
     return result.recordset;
   } catch (err) {
@@ -15,7 +14,7 @@ async function getCitas() {
 // Obtener una cita por ID
 async function getCitaById(id_cita) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_cita', sql.Int, id_cita)
       .query('SELECT * FROM T_Citas WHERE id_cita = @id_cita');
@@ -28,7 +27,7 @@ async function getCitaById(id_cita) {
 // Crear una nueva cita
 async function createCita(data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_cliente', sql.Int, data.id_cliente)
       .input('id_servicio', sql.Int, data.id_servicio)
@@ -48,7 +47,7 @@ async function createCita(data) {
 // Actualizar una cita
 async function updateCita(id_cita, data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_cita', sql.Int, id_cita)
       .input('id_cliente', sql.Int, data.id_cliente)
@@ -69,7 +68,7 @@ async function updateCita(id_cita, data) {
 // Eliminar una cita
 async function deleteCita(id_cita) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_cita', sql.Int, id_cita)
       .query('DELETE FROM T_Citas WHERE id_cita = @id_cita');

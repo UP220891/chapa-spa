@@ -1,10 +1,9 @@
-const sql = require('mssql');
-const dbConfig = require('../config/database');
+const { sql, poolPromise } = require('../config/database');
 
 // Obtener todos los horarios
 async function getHorarios() {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request().query('SELECT * FROM C_Horarios');
     return result.recordset;
   } catch (err) {
@@ -15,7 +14,7 @@ async function getHorarios() {
 // Obtener un horario por ID
 async function getHorarioById(id_horario) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_horario', sql.Int, id_horario)
       .query('SELECT * FROM C_Horarios WHERE id_horario = @id_horario');
@@ -28,7 +27,7 @@ async function getHorarioById(id_horario) {
 // Crear un nuevo horario
 async function createHorario(data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('hora_inicio', sql.Time, data.hora_inicio)
       .input('hora_fin', sql.Time, data.hora_fin)
@@ -42,7 +41,7 @@ async function createHorario(data) {
 // Actualizar un horario
 async function updateHorario(id_horario, data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_horario', sql.Int, id_horario)
       .input('hora_inicio', sql.Time, data.hora_inicio)
@@ -57,7 +56,7 @@ async function updateHorario(id_horario, data) {
 // Eliminar un horario
 async function deleteHorario(id_horario) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_horario', sql.Int, id_horario)
       .query('DELETE FROM C_Horarios WHERE id_horario = @id_horario');

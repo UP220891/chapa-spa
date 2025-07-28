@@ -1,10 +1,9 @@
-const sql = require('mssql');
-const dbConfig = require('../config/database');
+const { sql, poolPromise } = require('../config/database');
 
 // Obtener todos los clientes
 async function getClientes() {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request().query('SELECT * FROM T_Clientes');
     return result.recordset;
   } catch (err) {
@@ -15,7 +14,7 @@ async function getClientes() {
 // Obtener un cliente por ID
 async function getClienteById(id_cliente) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_cliente', sql.Int, id_cliente)
       .query('SELECT * FROM T_Clientes WHERE id_cliente = @id_cliente');
@@ -28,7 +27,7 @@ async function getClienteById(id_cliente) {
 // Crear un nuevo cliente
 async function createCliente(data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('nombre_cliente', sql.VarChar(50), data.nombre_cliente)
       .input('apellido_cliente', sql.VarChar(50), data.apellido_cliente)
@@ -45,7 +44,7 @@ async function createCliente(data) {
 // Actualizar un cliente
 async function updateCliente(id_cliente, data) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_cliente', sql.Int, id_cliente)
       .input('nombre_cliente', sql.VarChar(50), data.nombre_cliente)
@@ -63,7 +62,7 @@ async function updateCliente(id_cliente, data) {
 // Eliminar un cliente
 async function deleteCliente(id_cliente) {
   try {
-    let pool = await sql.connect(dbConfig);
+    const pool = await poolPromise;
     let result = await pool.request()
       .input('id_cliente', sql.Int, id_cliente)
       .query('DELETE FROM T_Clientes WHERE id_cliente = @id_cliente');

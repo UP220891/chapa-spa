@@ -1,11 +1,10 @@
-const sql = require('mssql');
-const dbConfig = require('../config/database');
+const { sql, poolPromise } = require('../config/database');
 
 // Obtener todos los empleados
 async function getEmpleados() {
   try {
-    let pool = await sql.connect(dbConfig);
-    let result = await pool.request().query('SELECT * FROM T_Empleados');
+    const pool = await poolPromise;
+    const result = await pool.request().query('SELECT * FROM T_Empleados');
     return result.recordset;
   } catch (err) {
     throw err;
@@ -15,8 +14,8 @@ async function getEmpleados() {
 // Obtener un empleado por ID
 async function getEmpleadoById(id_empleado) {
   try {
-    let pool = await sql.connect(dbConfig);
-    let result = await pool.request()
+    const pool = await poolPromise;
+    const result = await pool.request()
       .input('id_empleado', sql.Int, id_empleado)
       .query('SELECT * FROM T_Empleados WHERE id_empleado = @id_empleado');
     return result.recordset[0];
@@ -28,8 +27,8 @@ async function getEmpleadoById(id_empleado) {
 // Crear un nuevo empleado
 async function createEmpleado(data) {
   try {
-    let pool = await sql.connect(dbConfig);
-    let result = await pool.request()
+    const pool = await poolPromise;
+    const result = await pool.request()
       .input('nombre_empleado', sql.VarChar(50), data.nombre_empleado)
       .input('id_especialidad', sql.Int, data.id_especialidad)
       .input('id_horario', sql.Int, data.id_horario)
@@ -43,8 +42,8 @@ async function createEmpleado(data) {
 // Actualizar un empleado
 async function updateEmpleado(id_empleado, data) {
   try {
-    let pool = await sql.connect(dbConfig);
-    let result = await pool.request()
+    const pool = await poolPromise;
+    const result = await pool.request()
       .input('id_empleado', sql.Int, id_empleado)
       .input('nombre_empleado', sql.VarChar(50), data.nombre_empleado)
       .input('id_especialidad', sql.Int, data.id_especialidad)
@@ -59,8 +58,8 @@ async function updateEmpleado(id_empleado, data) {
 // Eliminar un empleado
 async function deleteEmpleado(id_empleado) {
   try {
-    let pool = await sql.connect(dbConfig);
-    let result = await pool.request()
+    const pool = await poolPromise;
+    const result = await pool.request()
       .input('id_empleado', sql.Int, id_empleado)
       .query('DELETE FROM T_Empleados WHERE id_empleado = @id_empleado');
     return result;
