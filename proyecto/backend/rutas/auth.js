@@ -1,8 +1,10 @@
-// Registro: crea un nuevo usuario en la base de datos
+const express = require('express');
+const router = express.Router();
 const { poolPromise, sql } = require('../config/database');
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 // Registro: crea un nuevo cliente y usuario de autenticación
-router.post('/register', async (req, res) => {
+router.post('/api/auth/register', async (req, res) => {
   const { nombre, email, password, telefono, fechaNacimiento } = req.body;
   if (!nombre || !email || !password || !telefono || !fechaNacimiento) {
     return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
@@ -36,13 +38,10 @@ router.post('/register', async (req, res) => {
       .query('INSERT INTO T_Auth (email, password, tipo_usuario, id_cliente, id_empleado) VALUES (@email, @password, @tipo_usuario, @id_cliente, @id_empleado)');
     res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
   } catch (error) {
+    console.error('Error en /api/auth/register:', error);
     res.status(500).json({ mensaje: 'Error al registrar usuario', error: error.message });
   }
 });
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const router = express.Router();
 
 // Reemplaza esto con tu consulta real a la base de datos
 const usuariosFake = [
@@ -52,7 +51,7 @@ const usuariosFake = [
 const SECRET_KEY = process.env.JWT_SECRET;
 
 // Login: valida contra T_Auth y devuelve token con info de usuario
-router.post('/login', async (req, res) => {
+router.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const pool = await poolPromise;

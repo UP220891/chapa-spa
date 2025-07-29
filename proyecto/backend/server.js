@@ -5,6 +5,7 @@ const cors = require('cors'); // Para evitar problemas con el frontend
 
 
 
+const authRoutes = require('./rutas/auth');
 const empleadosRoutes = require('./rutas/empleados');
 const clientesRoutes = require('./rutas/clientes');
 const citasRoutes = require('./rutas/citas');
@@ -17,8 +18,10 @@ const app = express();
 
 // Middlewares
 
+
 app.use(cors());
 app.use(express.json());
+app.use(authRoutes);
 
 // Rutas API REST
 
