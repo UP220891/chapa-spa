@@ -5,7 +5,7 @@ const Navbar = () => (
     <nav className="flex-1">
       <ul className="flex gap-8 text-gray-700 text-sm font-medium">
         <li><a href="#" className="hover:text-pink-600">Inicio</a></li>
-        <li><a href="/contactanos" className="hover:text-pink-600">Conocenos</a></li>
+        <li><a href="#" className="hover:text-pink-600">Conocenos</a></li>
         <li><a href="#" className="hover:text-pink-600">Servicios</a></li>
         <li><a href="#" className="hover:text-pink-600">Ubicación</a></li>
       </ul>
