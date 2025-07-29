@@ -6,10 +6,10 @@ const Navbar = () => (
   <header className="w-full flex items-center justify-between px-8 py-4 shadow-sm bg-white">
     <nav className="flex-1">
       <ul className="flex gap-8 text-gray-700 text-sm font-medium">
-        <li><a href="#" className="hover:text-pink-600">Inicio</a></li>
+        <li><a href="/" className="hover:text-pink-600">Inicio</a></li>
         <li><a href="/contactanos" className="hover:text-pink-600">Conocenos</a></li>
-        <li><a href="#" className="hover:text-pink-600">Servicios</a></li>
-        <li><a href="#" className="hover:text-pink-600">Ubicación</a></li>
+        <li><a href="#servicios" className="hover:text-pink-600">Servicios</a></li>
+        <li><a href="#ubicacion" className="hover:text-pink-600">Ubicación</a></li>
       </ul>
     </nav>
     <div className="flex-1 flex flex-col items-center justify-center gap-2">
