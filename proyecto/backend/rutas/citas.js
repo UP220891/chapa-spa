@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const { verificarToken } = require('./auth');
 const citasController = require('../controladores/citas');
+
+// Proteger todas las rutas de citas
+router.use(verificarToken);
 
 // Listar todas las citas
 router.get('/', citasController.listarCitas);

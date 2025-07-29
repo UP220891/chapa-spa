@@ -1,0 +1,72 @@
+.perfil-container {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7fafd;
+}
+
+.perfil-card {
+  background: #fff;
+  padding: 2.5rem 2rem;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px 0 rgba(31,38,135,0.12);
+  min-width: 350px;
+  max-width: 500px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.perfil-title {
+  color: #204d47;
+  font-weight: 900;
+  font-size: 2rem;
+  margin-bottom: 1.2rem;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.perfil-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  width: 100%;
+}
+
+.perfil-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.perfil-label {
+  color: #357a6c;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.perfil-value {
+  color: #204d47;
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+
+.perfil-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #204d47 60%, #357a6c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+  box-shadow: 0 2px 8px rgba(31,38,135,0.10);
+}
+
+.perfil-avatar svg {
+  width: 48px;
+  height: 48px;
+  color: #fff;
+}

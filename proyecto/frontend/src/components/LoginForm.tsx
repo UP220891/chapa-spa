@@ -1,10 +1,37 @@
-import React, { FC } from 'react';
+import React from 'react';
 
-type LoginFormProps = {
-  showHomeButton?: boolean;
-};
+function LoginForm({ showHomeButton = false }) {
+  // Estados para email y password
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
 
-const LoginForm: FC<LoginFormProps> = ({ showHomeButton = false }) => {
+  // Manejar submit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('usuario', JSON.stringify(data.usuario));
+        window.location.href = '/';
+      } else {
+        setError(data.mensaje || 'Error al iniciar sesión');
+      }
+    } catch (err) {
+      setError('Error de conexión');
+    }
+    setLoading(false);
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#f7fafd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.12)', borderRadius: '24px', background: '#fff', display: 'flex', overflow: 'hidden', minWidth: '800px', maxWidth: '1100px', margin: 'auto', padding: '2.5rem 2rem' }}>
@@ -19,11 +46,40 @@ const LoginForm: FC<LoginFormProps> = ({ showHomeButton = false }) => {
             </div>
           </div>
           <h1 className="login-heading" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#204d47', marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.1', letterSpacing: '0.04em' }}>Iniciar sesión</h1>
-          <form className="login-form" style={{ gap: '0.7rem' }}>
+          <form className="login-form" style={{ gap: '0.7rem' }} onSubmit={handleSubmit}>
             <label htmlFor="email" style={{ fontSize: '1.08rem', fontWeight: 700, color: '#357a6c', marginBottom: '0.1rem', letterSpacing: '0.02em' }}>Email</label>
-            <input type="email" id="email" placeholder="Ingresar Email" autoComplete="username" style={{ padding: '0.7rem', fontSize: '1.08rem', fontWeight: 600, color: '#204d47', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
+            <input type="email" id="email" placeholder="Ingresar Email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} style={{ padding: '0.7rem', fontSize: '1rem', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
             <label htmlFor="password" style={{ fontSize: '1.08rem', fontWeight: 700, color: '#357a6c', marginBottom: '0.1rem', letterSpacing: '0.02em' }}>Contraseña</label>
-            <input type="password" id="password" placeholder="Ingresar Contraseña" autoComplete="current-password" style={{ padding: '0.7rem', fontSize: '1.08rem', fontWeight: 600, color: '#204d47', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
+            <input
+              type="password"
+              id="password"
+              placeholder="Ingresar Contraseña"
+              autoComplete="current-password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              style={{
+                padding: '0.7rem',
+                fontSize: '1rem',
+                border: '1px solid #bbb',
+                borderRadius: '6px',
+                marginBottom: '0.3rem',
+                background: '#f7fafd',
+                fontWeight: 600,
+                color: '#204d47',
+                letterSpacing: '0.03em',
+              }}
+            />
+            <style>{`
+              input::placeholder {
+                color: #7a8a8a;
+                font-weight: 700;
+                font-size: 1.18rem;
+                letter-spacing: 0.01em;
+                opacity: 0.55;
+                font-family: inherit;
+              }
+            `}</style>
+            {error && <div style={{ color: 'red', fontWeight: 700, marginBottom: '0.5rem', textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', flexDirection: 'row', gap: '1.2rem', marginTop: '1.5rem', justifyContent: 'center' }}>
               <button
                 type="submit"
@@ -39,9 +95,12 @@ const LoginForm: FC<LoginFormProps> = ({ showHomeButton = false }) => {
                   padding: '0.8rem 2.2rem',
                   boxShadow: '0 2px 8px 0 rgba(31,38,135,0.08)',
                   transition: 'background 0.2s, transform 0.2s',
+                  opacity: loading ? 0.7 : 1,
+                  cursor: loading ? 'not-allowed' : 'pointer',
                 }}
+                disabled={loading}
               >
-                Iniciar sesión
+                {loading ? 'Ingresando...' : 'Iniciar sesión'}
               </button>
               <button
                 type="button"
