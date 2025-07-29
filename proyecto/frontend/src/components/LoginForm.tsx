@@ -9,7 +9,15 @@ const LoginForm: FC<LoginFormProps> = ({ showHomeButton = false }) => {
     <div style={{ minHeight: '100vh', background: '#f7fafd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.12)', borderRadius: '24px', background: '#fff', display: 'flex', overflow: 'hidden', minWidth: '800px', maxWidth: '1100px', margin: 'auto', padding: '2.5rem 2rem' }}>
         <div className="login-form-section" style={{ borderRadius: '24px 0 0 24px', minWidth: '340px', maxWidth: '480px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1.5rem' }}>
-          <h2 className="login-title" style={{ fontSize: '1.1rem', fontWeight: 700, color: '#204d47', letterSpacing: '0.08em', marginBottom: '0.7rem', textAlign: 'center' }}>CHAPASPA´S</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.1rem', gap: '0.3rem' }}>
+            <div style={{ background: '#fff', borderRadius: '50%', padding: '22px', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.7rem' }}>
+              <img
+                src="/images/logo_chapaspa.png"
+                alt="Logo ChapaSPA"
+                style={{ height: '100px', width: '100px', objectFit: 'contain', borderRadius: '50%' }}
+              />
+            </div>
+          </div>
           <h1 className="login-heading" style={{ fontSize: '1.7rem', fontWeight: 800, color: '#204d47', marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.1' }}>Iniciar sesión</h1>
           <form className="login-form" style={{ gap: '0.7rem' }}>
             <label htmlFor="email" style={{ fontSize: '0.98rem', fontWeight: 500, color: '#357a6c', marginBottom: '0.1rem' }}>Email</label>

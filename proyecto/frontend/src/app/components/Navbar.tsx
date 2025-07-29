@@ -1,3 +1,5 @@
+
+
 import React from 'react';
 
 const Navbar = () => (
@@ -10,7 +12,7 @@ const Navbar = () => (
         <li><a href="#" className="hover:text-pink-600">Ubicación</a></li>
       </ul>
     </nav>
-    <div className="flex-1 flex justify-center">
+    <div className="flex-1 flex flex-col items-center justify-center gap-2">
       <span className="text-2xl font-bold tracking-widest text-gray-800">CHAPASPA'S</span>
     </div>
     <nav className="flex-1 flex justify-end">

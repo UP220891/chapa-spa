@@ -6,7 +6,16 @@ const RegisterForm = () => {
     <div className="register-container" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(90deg, #f7fafd 60%, #fff 40%)' }}>
       <div className="register-card" style={{ maxWidth: '1500px', minWidth: '900px', height: '800px', boxShadow: '0 8px 32px 0 rgba(31,38,135,0.10)', borderRadius: '32px', background: 'transparent', display: 'flex', overflow: 'hidden', margin: 'auto', padding: '0', gap: '0' }}>
         <div className="register-form-section" style={{ flex: '1 1 0%', flexShrink: 0, padding: '4rem 3rem 4rem 3.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2rem', marginRight: '0', minWidth: '520px', maxWidth: '600px', background: 'transparent', height: '100%' }}>
-          <h2 className="register-title" style={{ marginBottom: '0.2rem' }}>CHAPASPA´S</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '0.7rem', gap: '0.3rem' }}>
+            <div style={{ background: '#fff', borderRadius: '50%', padding: '22px', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.7rem' }}>
+              <img
+                src="/images/logo_chapaspa.png"
+                alt="Logo ChapaSPA"
+                style={{ height: '100px', width: '100px', objectFit: 'contain', borderRadius: '50%' }}
+              />
+            </div>
+
+          </div>
           <h1 className="register-heading" style={{ marginBottom: '0.7rem' }}>Registro</h1>
           <form className="register-form" style={{ display: 'flex', flexDirection: 'column', gap: '1.3rem' }}>
             <div style={{ display: 'flex', gap: '2rem' }}>
