@@ -21,26 +21,26 @@ const RegisterForm = () => {
             <div style={{ display: 'flex', gap: '2rem' }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                 <label htmlFor="name" className="register-label">Nombre</label>
-                <input type="text" id="name" placeholder="Nombre" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
+                <input type="text" id="name" placeholder="Ingresar Nombre" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                 <label htmlFor="email" className="register-label">Email</label>
-                <input type="email" id="email" placeholder="Email" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
+                <input type="email" id="email" placeholder="Ingresar Email" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: '2rem' }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                 <label htmlFor="password" className="register-label">Contraseña</label>
-                <input type="password" id="password" placeholder="Contraseña" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
+                <input type="password" id="password" placeholder="Ingresar Contraseña" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                 <label htmlFor="phone" className="register-label">Teléfono</label>
-                <input type="tel" id="phone" placeholder="Teléfono" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
+                <input type="tel" id="phone" placeholder="Ingresar Teléfono" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', marginBottom: '1.2rem' }}>
               <label htmlFor="birthdate" className="register-label">Fecha de nacimiento</label>
-              <input type="date" id="birthdate" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
+              <input type="date" id="birthdate" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} placeholder="Seleccionar Fecha de nacimiento" />
             </div>
             <div style={{ display: 'flex', flexDirection: 'row', gap: '2.2rem', marginTop: '2rem', marginBottom: '1.2rem', justifyContent: 'center' }}>
               <button
