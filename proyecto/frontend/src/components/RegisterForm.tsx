@@ -16,31 +16,31 @@ const RegisterForm = () => {
             </div>
 
           </div>
-          <h1 className="register-heading" style={{ marginBottom: '0.7rem' }}>Registro</h1>
+          <h1 className="register-heading" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#204d47', marginBottom: '0.7rem', letterSpacing: '0.04em', textAlign: 'center' }}>Registro</h1>
           <form className="register-form" style={{ display: 'flex', flexDirection: 'column', gap: '1.3rem' }}>
             <div style={{ display: 'flex', gap: '2rem' }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                 <label htmlFor="name" className="register-label">Nombre</label>
-                <input type="text" id="name" placeholder="Nombre" className="register-input" required />
+                <input type="text" id="name" placeholder="Nombre" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                 <label htmlFor="email" className="register-label">Email</label>
-                <input type="email" id="email" placeholder="Email" className="register-input" required />
+                <input type="email" id="email" placeholder="Email" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: '2rem' }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                 <label htmlFor="password" className="register-label">Contraseña</label>
-                <input type="password" id="password" placeholder="Contraseña" className="register-input" required />
+                <input type="password" id="password" placeholder="Contraseña" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                 <label htmlFor="phone" className="register-label">Teléfono</label>
-                <input type="tel" id="phone" placeholder="Teléfono" className="register-input" required />
+                <input type="tel" id="phone" placeholder="Teléfono" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', marginBottom: '1.2rem' }}>
               <label htmlFor="birthdate" className="register-label">Fecha de nacimiento</label>
-              <input type="date" id="birthdate" className="register-input" required />
+              <input type="date" id="birthdate" className="register-input" required style={{ fontSize: '1.08rem', fontWeight: 600, color: '#204d47', background: '#f7fafd' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'row', gap: '2.2rem', marginTop: '2rem', marginBottom: '1.2rem', justifyContent: 'center' }}>
               <button

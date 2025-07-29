@@ -18,12 +18,12 @@ const LoginForm: FC<LoginFormProps> = ({ showHomeButton = false }) => {
               />
             </div>
           </div>
-          <h1 className="login-heading" style={{ fontSize: '1.7rem', fontWeight: 800, color: '#204d47', marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.1' }}>Iniciar sesión</h1>
+          <h1 className="login-heading" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#204d47', marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.1', letterSpacing: '0.04em' }}>Iniciar sesión</h1>
           <form className="login-form" style={{ gap: '0.7rem' }}>
-            <label htmlFor="email" style={{ fontSize: '0.98rem', fontWeight: 500, color: '#357a6c', marginBottom: '0.1rem' }}>Email</label>
-            <input type="email" id="email" placeholder="Ingresar Email" autoComplete="username" style={{ padding: '0.7rem', fontSize: '1rem', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
-            <label htmlFor="password" style={{ fontSize: '0.98rem', fontWeight: 500, color: '#357a6c', marginBottom: '0.1rem' }}>Contraseña</label>
-            <input type="password" id="password" placeholder="Ingresar Contraseña" autoComplete="current-password" style={{ padding: '0.7rem', fontSize: '1rem', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
+            <label htmlFor="email" style={{ fontSize: '1.08rem', fontWeight: 700, color: '#357a6c', marginBottom: '0.1rem', letterSpacing: '0.02em' }}>Email</label>
+            <input type="email" id="email" placeholder="Ingresar Email" autoComplete="username" style={{ padding: '0.7rem', fontSize: '1.08rem', fontWeight: 600, color: '#204d47', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
+            <label htmlFor="password" style={{ fontSize: '1.08rem', fontWeight: 700, color: '#357a6c', marginBottom: '0.1rem', letterSpacing: '0.02em' }}>Contraseña</label>
+            <input type="password" id="password" placeholder="Ingresar Contraseña" autoComplete="current-password" style={{ padding: '0.7rem', fontSize: '1.08rem', fontWeight: 600, color: '#204d47', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
             <div style={{ display: 'flex', flexDirection: 'row', gap: '1.2rem', marginTop: '1.5rem', justifyContent: 'center' }}>
               <button
                 type="submit"
