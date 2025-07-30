@@ -48,7 +48,26 @@ function LoginForm({ showHomeButton = false }) {
           <h1 className="login-heading" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#204d47', marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.1', letterSpacing: '0.04em' }}>Iniciar sesión</h1>
           <form className="login-form" style={{ gap: '0.7rem' }} onSubmit={handleSubmit}>
             <label htmlFor="email" style={{ fontSize: '1.08rem', fontWeight: 700, color: '#357a6c', marginBottom: '0.1rem', letterSpacing: '0.02em' }}>Email</label>
-            <input type="email" id="email" placeholder="Ingresar Email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} style={{ padding: '0.7rem', fontSize: '1rem', border: '1px solid #bbb', borderRadius: '6px', marginBottom: '0.3rem', background: '#f7fafd' }} />
+            <input
+              type="email"
+              id="email"
+              placeholder="Ingresar Email"
+              autoComplete="username"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              style={{
+                padding: '0.7rem',
+                fontSize: '1rem',
+                border: '1px solid #bbb',
+                borderRadius: '6px',
+                marginBottom: '0.3rem',
+                background: '#f7fafd',
+                fontWeight: 600,
+                color: '#204d47',
+                fontFamily: 'Montserrat, sans-serif',
+                letterSpacing: '0.03em',
+              }}
+            />
             <label htmlFor="password" style={{ fontSize: '1.08rem', fontWeight: 700, color: '#357a6c', marginBottom: '0.1rem', letterSpacing: '0.02em' }}>Contraseña</label>
             <input
               type="password"
@@ -66,6 +85,7 @@ function LoginForm({ showHomeButton = false }) {
                 background: '#f7fafd',
                 fontWeight: 600,
                 color: '#204d47',
+                fontFamily: 'Montserrat, sans-serif',
                 letterSpacing: '0.03em',
               }}
             />
