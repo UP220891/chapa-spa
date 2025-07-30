@@ -63,7 +63,14 @@ router.post('/register', async (req, res) => {
       .input('id_cliente', sql.Int, id_cliente)
       .input('id_empleado', sql.Int, null)
       .query('INSERT INTO T_Auth (email, password, tipo_usuario, id_cliente, id_empleado) VALUES (@email, @password, @tipo_usuario, @id_cliente, @id_empleado)');
-    res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
+    // Obtener info del cliente recién creado
+    const cliente = await pool.request()
+      .input('id_cliente', sql.Int, id_cliente)
+      .query('SELECT * FROM T_Clientes WHERE id_cliente = @id_cliente');
+    const userInfo = cliente.recordset[0];
+    // Generar token con expiración de 2 horas
+    const token = jwt.sign({ id: id_cliente, email, ...userInfo }, SECRET_KEY, { expiresIn: '2h' });
+    res.status(201).json({ mensaje: 'Usuario registrado correctamente', token, usuario: userInfo });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al registrar usuario', error: error.message });
   }

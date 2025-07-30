@@ -95,9 +95,9 @@ const Perfil = () => {
 
   return (
     <>
-      <Navbar />
+      <Navbar usuario={usuario} />
       <Box sx={{ minHeight: "100vh", bgcolor: "#f7fafd", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Card sx={{ minWidth: 370, maxWidth: 440, mx: 2, boxShadow: 6, borderRadius: 6, p: 3, display: "flex", flexDirection: "column", alignItems: "center", background: "#f9fbfc" }}>
+        <Card sx={{ minWidth: 400, maxWidth: 1200, width: "100%", mx: 2, boxShadow: 6, borderRadius: 8, p: 6, display: "flex", flexDirection: "column", alignItems: "center", background: "linear-gradient(120deg, #e0f1ee 0%, #ffffff 100%)" }}>
           <Avatar
             src={usuario.imagen_perfil || undefined}
             sx={{ bgcolor: deepPurple[500], width: 120, height: 120, fontSize: 48, mb: 2, boxShadow: "0 4px 16px rgba(31,38,135,0.13)", border: "4px solid #fff" }}
@@ -111,7 +111,7 @@ const Perfil = () => {
           </Typography>
           <CardContent sx={{ width: "100%", pt: 0 }}>
             {editando ? (
-              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.3rem", marginTop: "1.2rem" }}>
+              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.3rem", marginTop: "1.2rem", maxWidth: 600, marginLeft: "auto", marginRight: "auto" }}>
                 <TextField
                   label="Nombre"
                   value={nombre}
@@ -167,6 +167,14 @@ const Perfil = () => {
                   >
                     Cancelar
                   </Button>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    sx={{ background: "#fff", color: "#357a6c", border: "2px solid #357a6c", borderRadius: "100px", fontWeight: 600, fontFamily: "Montserrat, sans-serif", fontSize: "1.08rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.08)", letterSpacing: "0.03em", p: "0.7rem 1.7rem", '&:hover': { background: "#e0f1ee" } }}
+                    onClick={() => alert('Aquí iría el historial')}
+                  >
+                    Historial
+                  </Button>
                 </Box>
               </form>
             ) : (
@@ -188,6 +196,14 @@ const Perfil = () => {
                     onClick={() => setEditando(true)}
                   >
                     Editar perfil
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    sx={{ background: "#fff", color: "#357a6c", border: "2px solid #357a6c", borderRadius: "100px", fontWeight: 600, fontFamily: "Montserrat, sans-serif", fontSize: "1.08rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.08)", letterSpacing: "0.03em", p: "0.7rem 1.7rem", '&:hover': { background: "#e0f1ee" } }}
+                    onClick={() => alert('Aquí iría el historial')}
+                  >
+                    Historial
                   </Button>
                 </Box>
               </>

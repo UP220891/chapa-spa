@@ -1,13 +1,20 @@
 "use client";
 
 
+
 import React from 'react';
 
-const Navbar = () => {
-  // Verificar si el usuario está autenticado
-  const [usuario, setUsuario] = React.useState<any>(null);
+interface NavbarProps {
+  usuario?: any;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
+  const [usuario, setUsuario] = React.useState<any>(usuarioProp ?? null);
+
   React.useEffect(() => {
-    const updateUsuario = () => {
+    if (usuarioProp) {
+      setUsuario(usuarioProp);
+    } else {
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('usuario');
       if (token && userStr) {
@@ -19,13 +26,8 @@ const Navbar = () => {
       } else {
         setUsuario(null);
       }
-    };
-    updateUsuario();
-    window.addEventListener('storage', updateUsuario);
-    return () => {
-      window.removeEventListener('storage', updateUsuario);
-    };
-  }, []);
+    }
+  }, [usuarioProp]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
