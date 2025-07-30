@@ -1,7 +1,29 @@
 "use client";
-import React from 'react';
+import React, { useRef } from 'react';
+import { registerCliente } from '../servicios/authService';
+import { useRouter } from 'next/navigation';
 
 const RegisterForm = () => {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = formRef.current;
+    if (!form) return;
+    const nombre = (form.elements.namedItem('name') as HTMLInputElement).value;
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
+    const telefono = (form.elements.namedItem('phone') as HTMLInputElement).value;
+    const fechaNacimiento = (form.elements.namedItem('birthdate') as HTMLInputElement).value;
+    try {
+      await registerCliente({ nombre, email, password, telefono, fechaNacimiento });
+      router.push('/login');
+    } catch (err: any) {
+      alert(err?.response?.data?.mensaje || 'Error al registrar');
+    }
+  };
+
   return (
     <div className="register-container" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(90deg, #f7fafd 60%, #fff 40%)' }}>
       <div className="register-card" style={{ maxWidth: '1500px', minWidth: '900px', height: '800px', boxShadow: '0 8px 32px 0 rgba(31,38,135,0.10)', borderRadius: '32px', background: 'transparent', display: 'flex', overflow: 'hidden', margin: 'auto', padding: '0', gap: '0' }}>
@@ -17,7 +39,7 @@ const RegisterForm = () => {
 
           </div>
           <h1 className="register-heading" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#204d47', marginBottom: '0.7rem', letterSpacing: '0.04em', textAlign: 'center' }}>Registro</h1>
-          <form className="register-form" style={{ display: 'flex', flexDirection: 'column', gap: '1.3rem' }}>
+          <form className="register-form" ref={formRef} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.3rem' }}>
             <div style={{ display: 'flex', gap: '2rem' }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                 <label htmlFor="name" className="register-label">Nombre</label>
