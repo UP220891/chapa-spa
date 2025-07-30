@@ -1,72 +1,80 @@
 .perfil-container {
-  min-height: 60vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #f7fafd;
+  padding: 2rem;
 }
 
 .perfil-card {
-  background: #fff;
-  padding: 2.5rem 2rem;
+  background: #ffffff;
+  padding: 3rem 2rem;
   border-radius: 18px;
-  box-shadow: 0 8px 32px 0 rgba(31,38,135,0.12);
-  min-width: 350px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   max-width: 500px;
   width: 100%;
+  text-align: center;
+}
+
+.perfil-avatar {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #204d47, #357a6c);
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 700;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .perfil-title {
+  font-size: 1.8rem;
+  font-weight: 800;
   color: #204d47;
-  font-weight: 900;
-  font-size: 2rem;
-  margin-bottom: 1.2rem;
-  text-align: center;
-  letter-spacing: 0.04em;
+  margin-bottom: 1.5rem;
+  font-family: "Montserrat", sans-serif;
 }
 
 .perfil-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-  width: 100%;
+  background: #f0f7f6;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  text-align: left;
 }
 
 .perfil-info-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  margin-bottom: 1rem;
 }
 
 .perfil-label {
   color: #357a6c;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .perfil-value {
   color: #204d47;
   font-weight: 600;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
 }
 
-.perfil-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #204d47 60%, #357a6c 100%);
+.perfil-buttons {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
   justify-content: center;
-  margin-bottom: 1.2rem;
-  box-shadow: 0 2px 8px rgba(31,38,135,0.10);
 }
 
-.perfil-avatar svg {
-  width: 48px;
-  height: 48px;
-  color: #fff;
+.perfil-buttons button {
+  border-radius: 100px;
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  font-family: "Montserrat", sans-serif;
+  font-size: 1rem;
 }
