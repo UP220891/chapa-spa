@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 import {
   Box,
   Card,
@@ -15,6 +16,7 @@ import {
 import Navbar from "../components/Navbar";
 
 const Perfil = () => {
+  const router = useRouter();
   const [usuario, setUsuario] = React.useState<any | null>(null);
   const [cargando, setCargando] = React.useState(true);
   const [editando, setEditando] = React.useState(false);
@@ -242,7 +244,7 @@ const Perfil = () => {
                   <Button
                     variant="outlined"
                     sx={{ background: "#fff", color: "#357a6c", border: "2px solid #357a6c", borderRadius: "10px", fontWeight: 700, fontFamily: "Montserrat, sans-serif", fontSize: "1.1rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.08)", letterSpacing: "0.03em", px: 4, py: 1.5, '&:hover': { background: "#e0f1ee" } }}
-                    onClick={() => alert("Aquí iría el historial de citas")}
+                    onClick={() => router.push("/perfil/historial-citas")}
                   >
                     Historial de citas
                   </Button>
