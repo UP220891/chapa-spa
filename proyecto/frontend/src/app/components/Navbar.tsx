@@ -44,6 +44,10 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
           <li><a href="/contactanos" className="hover:text-pink-600">Conócenos</a></li>
           <li><a href="/servicio" className="hover:text-pink-600">Servicios</a></li>
           <li><a href="/ubicacion" className="hover:text-pink-600">Ubicación</a></li>
+          {/* Enlace solo para administrador */}
+          {usuario && usuario.rol === 'admin' && (
+            <li><a href="/Administrador" className="hover:text-pink-600 font-bold">Administrador</a></li>
+          )}
         </ul>
       </nav>
       {/* Bloque central: nombre/logo */}
