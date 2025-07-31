@@ -23,14 +23,14 @@ const servicios = [
     },
     {
         id: 3,
-        nombre: 'Spa de Manos',
+        nombre: 'Manicura',
         descripcion: 'Cuidado y embellecimiento de manos y uñas.',
         precio: 250,
         imagen: '/images/spamanos.jpg'
     },
     {
         id: 4,
-        nombre: 'Spa de Pies',
+        nombre: 'Pedicura',
         descripcion: 'Relajación y cuidado especial para tus pies.',
         precio: 300,
         imagen: '/images/spapies.jpg'

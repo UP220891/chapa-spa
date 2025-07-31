@@ -10,17 +10,18 @@
 .servicioCard {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(44, 62, 80, 0.12);
+  box-shadow: 0 4px 16px rgba(32,77,71,0.13);
   padding: 1.5rem 1rem;
   width: 260px;
   text-align: center;
   transition: transform 0.2s, box-shadow 0.2s;
   margin-bottom: 1rem;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
 }
 
 .servicioCard:hover {
   transform: translateY(-8px) scale(1.03);
-  box-shadow: 0 8px 24px rgba(44, 62, 80, 0.18);
+  box-shadow: 0 8px 24px rgba(32,77,71,0.18);
 }
 
 .servicioImage {
@@ -33,49 +34,42 @@
 }
 
 .servicioNombre {
-  color: #256029;
+  color: #204d47;
   font-size: 1.4rem;
   font-weight: 800;
   margin: 0.7rem 0 0.3rem 0;
   font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
   letter-spacing: 0.03em;
-  text-shadow: 0 2px 8px rgba(44, 62, 80, 0.06);
+  text-shadow: 0 2px 8px rgba(32,77,71,0.06);
   text-align: center;
   transition: color 0.2s;
 }
 
-.servicioCard {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(44, 62, 80, 0.12);
-  padding: 1.5rem 1rem;
-  width: 260px;
-  text-align: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-  margin-bottom: 1rem;
+.servicioCard:hover .servicioNombre {
+  color: #357a6c;
 }
 
 .servicioDescripcion {
-  color: #444; /* Gris oscuro para mejor contraste */
+  color: #357a6c;
   font-size: 1rem;
   margin-bottom: 0.8rem;
   font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
   letter-spacing: 0.01em;
   line-height: 1.5;
-  background: rgba(255,255,255,0.7);
+  background: rgba(75,138,138,0.07);
   border-radius: 6px;
   padding: 0.5rem 0.3rem;
 }
 
 .servicioPrecio {
-  color: black;
+  color: #204d47;
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 .tituloServicios {
-  color: #2e7d32;
+  color: #204d47;
   font-size: 2rem;
   font-weight: 700;
   text-align: center;
@@ -87,16 +81,19 @@
 .reservaBtn {
   margin-top: 0.7rem;
   padding: 0.5rem 1.2rem;
-  background-color: #388e3c; /* Verde quemado */
+  background: linear-gradient(90deg, #204d47 60%, #357a6c 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  box-shadow: 0 4px 16px rgba(32,77,71,0.13);
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .reservaBtn:hover {
-  background-color: #256029; /* Verde aún más oscuro al pasar el mouse */
+  background: linear-gradient(90deg, #357a6c 60%, #204d47 100%);
+  transform: scale(1.04);
+  box-shadow: 0 8px 24px rgba(32,77,71,0.18);
 }
