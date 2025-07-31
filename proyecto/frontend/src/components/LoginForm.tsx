@@ -8,8 +8,19 @@ function LoginForm({ showHomeButton = false }) {
   const [loading, setLoading] = React.useState(false);
 
   // Manejar submit
+  const validate = (email: string, password: string) => {
+    if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) return "El correo no es válido";
+    if (!password) return "La contraseña es obligatoria";
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errorMsg = validate(email, password);
+    if (errorMsg) {
+      setError(errorMsg);
+      return;
+    }
     setError(null);
     setLoading(true);
     try {

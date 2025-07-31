@@ -7,6 +7,24 @@ const RegisterForm = () => {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
 
+  const validate = ({ nombre, email, password, telefono, fechaNacimiento }: any) => {
+    if (!nombre) return "El nombre es obligatorio";
+    if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) return "El correo no es válido";
+    if (!password || password.length < 6) return "La contraseña debe tener al menos 6 caracteres";
+    if (!telefono) return "El teléfono es obligatorio";
+    if (!/^\d{10,}$/.test(telefono)) return "El teléfono debe ser numérico y tener al menos 10 dígitos";
+    if (!fechaNacimiento) return "La fecha de nacimiento es obligatoria";
+    const fecha = new Date(fechaNacimiento);
+    const hoy = new Date();
+    if (isNaN(fecha.getTime())) return "La fecha de nacimiento no es válida";
+    if (fecha > hoy) return "La fecha de nacimiento no puede ser futura";
+    // Validar que el usuario tenga al menos 16 años
+    const edadMinima = 16;
+    const fechaMinima = new Date(hoy.getFullYear() - edadMinima, hoy.getMonth(), hoy.getDate());
+    if (fecha > fechaMinima) return `Debes tener al menos ${edadMinima} años para registrarte`;
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = formRef.current;
@@ -16,6 +34,11 @@ const RegisterForm = () => {
     const password = (form.elements.namedItem('password') as HTMLInputElement).value;
     const telefono = (form.elements.namedItem('phone') as HTMLInputElement).value;
     const fechaNacimiento = (form.elements.namedItem('birthdate') as HTMLInputElement).value;
+    const error = validate({ nombre, email, password, telefono, fechaNacimiento });
+    if (error) {
+      alert(error);
+      return;
+    }
     try {
       await registerCliente({ nombre, email, password, telefono, fechaNacimiento });
       router.push('/login');

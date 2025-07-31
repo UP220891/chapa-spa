@@ -15,6 +15,15 @@ export interface CitaForm {
 }
 
 export async function crearCita(form: CitaForm): Promise<any> {
+  // Validación frontend antes de enviar al backend
+  if (!form.nombre) throw new Error("El nombre es obligatorio");
+  if (!form.apellidos) throw new Error("Los apellidos son obligatorios");
+  if (!form.email || !/^[^@]+@[^@]+\.[^@]+$/.test(form.email)) throw new Error("El correo no es válido");
+  if (!form.numero) throw new Error("El número es obligatorio");
+  if (!form.fecha) throw new Error("La fecha es obligatoria");
+  if (!form.hora) throw new Error("La hora es obligatoria");
+  if (!form.servicio) throw new Error("El servicio es obligatorio");
+
   // Obtener token y usuario
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const usuarioLocal = typeof window !== "undefined" ? localStorage.getItem("usuario") : null;
