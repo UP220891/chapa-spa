@@ -42,8 +42,8 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
         <ul className="flex gap-10 text-gray-700 text-sm font-medium">
           <li><a href="/" className="hover:text-pink-600">Inicio</a></li>
           <li><a href="/contactanos" className="hover:text-pink-600">Conócenos</a></li>
-          <li><a href="#servicios" className="hover:text-pink-600">Servicios</a></li>
-          <li><a href="#ubicacion" className="hover:text-pink-600">Ubicación</a></li>
+          <li><a href="/servicio" className="hover:text-pink-600">Servicios</a></li>
+          <li><a href="/ubicacion" className="hover:text-pink-600">Ubicación</a></li>
         </ul>
       </nav>
       {/* Bloque central: nombre/logo */}

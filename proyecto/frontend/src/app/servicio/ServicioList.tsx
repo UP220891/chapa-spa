@@ -1,6 +1,5 @@
 import React from 'react';
-import styles from './ServicioList.module.css';
-
+import styles from '../../styles/ServicioList.module.css';
 interface ServicioListProps {
   servicios: {
     id: number;
