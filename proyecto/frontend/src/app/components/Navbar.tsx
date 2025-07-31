@@ -41,7 +41,7 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
       <nav className="flex-1 flex justify-start">
         <ul className="flex flex-wrap gap-6 text-gray-700 text-sm font-medium">
           <li><a href="/" className="hover:text-pink-600">Inicio</a></li>
-          <li><a href="/contactanos" className="hover:text-pink-600">Conócenos</a></li>
+          <li><a href="/conocenos" className="hover:text-pink-600">Conócenos</a></li>
           <li><a href="/servicio" className="hover:text-pink-600">Servicios</a></li>
           <li><a href="/ubicacion" className="hover:text-pink-600">Ubicación</a></li>
           {/* Enlace para cualquier empleado o admin */}
