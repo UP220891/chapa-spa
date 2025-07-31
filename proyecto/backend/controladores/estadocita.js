@@ -1,4 +1,5 @@
 const EstadoCita = require('../modelos/estadocita');
+const { validationResult } = require('express-validator');
 
 // Listar todos los estados de cita
 async function listarEstadosCita(req, res) {
@@ -23,6 +24,10 @@ async function obtenerEstadoCita(req, res) {
 
 // Crear un nuevo estado de cita
 async function crearEstadoCita(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await EstadoCita.createEstadoCita(req.body);
     res.status(201).json({ mensaje: 'Estado de cita creado correctamente' });
@@ -33,6 +38,10 @@ async function crearEstadoCita(req, res) {
 
 // Actualizar un estado de cita
 async function actualizarEstadoCita(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await EstadoCita.updateEstadoCita(req.params.id, req.body);
     res.json({ mensaje: 'Estado de cita actualizado correctamente' });

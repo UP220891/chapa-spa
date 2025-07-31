@@ -21,8 +21,13 @@ async function obtenerEspecialidad(req, res) {
   }
 }
 
+const { validationResult } = require('express-validator');
 // Crear una nueva especialidad
 async function crearEspecialidad(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Especialidad.createEspecialidad(req.body);
     res.status(201).json({ mensaje: 'Especialidad creada correctamente' });
@@ -33,6 +38,10 @@ async function crearEspecialidad(req, res) {
 
 // Actualizar una especialidad
 async function actualizarEspecialidad(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Especialidad.updateEspecialidad(req.params.id, req.body);
     res.json({ mensaje: 'Especialidad actualizada correctamente' });
