@@ -1,0 +1,44 @@
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    padding: 20px;
+}
+
+.serviceCard {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin: 10px;
+    padding: 15px;
+    width: 250px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.serviceCard:hover {
+    transform: scale(1.05);
+}
+
+.serviceImage {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+.serviceName {
+    font-size: 1.5em;
+    margin: 10px 0;
+}
+
+.serviceDescription {
+    font-size: 1em;
+    color: #666;
+    margin: 10px 0;
+}
+
+.servicePrice {
+    font-size: 1.2em;
+    color: #333;
+    font-weight: bold;
+}

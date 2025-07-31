@@ -21,8 +21,13 @@ async function obtenerCliente(req, res) {
   }
 }
 
+const { validationResult } = require('express-validator');
 // Crear un nuevo cliente
 async function crearCliente(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Clientes.createCliente(req.body);
     res.status(201).json({ mensaje: 'Cliente creado correctamente' });
@@ -33,6 +38,10 @@ async function crearCliente(req, res) {
 
 // Actualizar un cliente
 async function actualizarCliente(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Clientes.updateCliente(req.params.id, req.body);
     res.json({ mensaje: 'Cliente actualizado correctamente' });

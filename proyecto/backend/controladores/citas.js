@@ -21,8 +21,13 @@ async function obtenerCita(req, res) {
   }
 }
 
+const { validationResult } = require('express-validator');
 // Crear una nueva cita
 async function crearCita(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Citas.createCita(req.body);
     res.status(201).json({ mensaje: 'Cita creada correctamente' });
@@ -33,6 +38,10 @@ async function crearCita(req, res) {
 
 // Actualizar una cita
 async function actualizarCita(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Citas.updateCita(req.params.id, req.body);
     res.json({ mensaje: 'Cita actualizada correctamente' });

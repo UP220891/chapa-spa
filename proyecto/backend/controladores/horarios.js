@@ -1,4 +1,5 @@
 const Horarios = require('../modelos/horarios');
+const { validationResult } = require('express-validator');
 
 // Listar todos los horarios
 async function listarHorarios(req, res) {
@@ -23,6 +24,10 @@ async function obtenerHorario(req, res) {
 
 // Crear un nuevo horario
 async function crearHorario(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Horarios.createHorario(req.body);
     res.status(201).json({ mensaje: 'Horario creado correctamente' });
@@ -33,6 +38,10 @@ async function crearHorario(req, res) {
 
 // Actualizar un horario
 async function actualizarHorario(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Horarios.updateHorario(req.params.id, req.body);
     res.json({ mensaje: 'Horario actualizado correctamente' });

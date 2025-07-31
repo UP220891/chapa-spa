@@ -31,38 +31,48 @@ export default function Home() {
         {/* Puedes agregar texto o íconos aquí si lo deseas */}
       </div>
 
+
+
       {/* Header y menú */}
       <div
         className="homepage-header"
         style={{
           display: 'flex',
           flexDirection: 'row',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           alignItems: 'center',
           width: '100%',
-          maxWidth: '1440px',
-          height: '86px',
-          padding: '0 72px',
+          maxWidth: '900px',
+          height: '60px',
+          margin: '0 auto 1.2rem auto',
+          padding: 0,
           boxSizing: 'border-box',
-          marginBottom: '1.5rem',
         }}>
         <Navbar />
       </div>
 
-      {/* Hero principal */}
+      {/* Hero principal con logo visual */}
       <div style={{width: '100vw', textAlign: 'center', marginBottom: '1.5rem', padding: 0}}>
-        <h1
-          style={{
-            color: '#204d47',
-            fontSize: '4rem',
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textShadow: '0 2px 10px rgba(0,0,0,0.15)',
-            margin: 0,
-            marginBottom: '1.5rem',
-            fontFamily: 'Alegreya Sans, Arial, sans-serif',
-          }}
-        >BIENVENIDOS</h1>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.2rem', marginBottom: '1.5rem' }}>
+          <div style={{ background: '#fff', borderRadius: '50%', padding: '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img
+              src="/images/logo_chapaspa.png"
+              alt="Logo ChapaSPA"
+              style={{ height: '100px', width: '100px', objectFit: 'contain', borderRadius: '50%' }}
+            />
+          </div>
+          <h1
+            style={{
+              color: '#204d47',
+              fontSize: '4rem',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textShadow: '0 2px 10px rgba(0,0,0,0.15)',
+              margin: 0,
+              fontFamily: 'Alegreya Sans, Arial, sans-serif',
+            }}
+          >BIENVENIDOS</h1>
+        </div>
         <div
           className="hero-image-container"
           style={{
