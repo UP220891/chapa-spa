@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from '../../styles/ServicioList.module.css';
 
+
 interface Servicio {
   id: number;
   nombre: string;

@@ -1,7 +1,10 @@
-import React from 'react';
+'use client';
+import React, { useState } from 'react';
 import ServicioList from './ServicioList';
 import Navbar from '../components/Navbar';
+import Busqueda from '../../components/busqueda';
 import styles from '../../styles/ServicioList.module.css'; 
+
 
 const servicios = [
     {
@@ -57,11 +60,18 @@ const servicios = [
 ];
 
 const Page = () => {
+      const [busqueda, setBusqueda] = useState(''); // <-- AQUÍ
+
+  const serviciosFiltrados = servicios.filter(servicio =>
+    servicio.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+    servicio.descripcion.toLowerCase().includes(busqueda.toLowerCase())
+  );
     return (
         <div>
             <Navbar />
             <h1 className={styles.tituloServicios}>Servicios Disponibles</h1>
-            <ServicioList servicios={servicios} />
+            <Busqueda valor={busqueda} onChange={e => setBusqueda(e.target.value)} />
+            <ServicioList servicios={serviciosFiltrados} />
         </div>
     );
 };
