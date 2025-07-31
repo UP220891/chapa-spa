@@ -50,6 +50,12 @@ const AdminCalendar = () => {
       telefono: "555-123-4567"
     }
   ]);
+  const [editAppointment, setEditAppointment] = useState<Cita | null>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showEmployeeForm, setShowEmployeeForm] = useState(false);
+  const [showClientForm, setShowClientForm] = useState(false);
+  const [newEmployee, setNewEmployee] = useState({ nombre: '', email: '', password: '', rol: 'empleado' });
+  const [newClient, setNewClient] = useState({ nombre: '', email: '', password: '', telefono: '', fechaNacimiento: '' });
 
   const [newAppointment, setNewAppointment] = useState({
     cliente: '',
@@ -167,12 +173,17 @@ const AdminCalendar = () => {
       <div className="admin-calendar-container">
         <div className="admin-header">
           <h1>Panel de Administración - Calendario de Citas</h1>
-          <button 
-            className="btn-new-appointment"
-            onClick={() => setShowAppointmentForm(true)}
-          >
-            + Nueva Cita
-          </button>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+            <button className="btn-new-appointment" onClick={() => setShowAppointmentForm(true)}>
+              + Nueva Cita
+            </button>
+            <button className="btn-new-employee" style={{ background: '#357a6c', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }} onClick={() => setShowEmployeeForm(true)}>
+              + Nuevo Empleado
+            </button>
+            <button className="btn-new-client" style={{ background: '#204d47', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }} onClick={() => setShowClientForm(true)}>
+              + Nuevo Cliente
+            </button>
+          </div>
         </div>
 
       <div className="calendar-wrapper">
@@ -258,10 +269,191 @@ const AdminCalendar = () => {
                           >
                             Cancelar
                           </button>
+                        <button 
+                          className="btn-edit"
+                          style={{ background: '#fbbf24', color: '#204d47', borderRadius: '4px', marginLeft: '8px', padding: '4px 10px', border: 'none' }}
+                          onClick={() => { setEditAppointment(cita); setShowEditForm(true); setShowModal(false); }}
+                        >
+                          Editar
+                        </button>
                         </div>
                       </div>
                     </div>
                   ))}
+      {showEditForm && editAppointment && (
+        <div className="modal-overlay" onClick={() => setShowEditForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Editar Cita</h3>
+              <button className="close-btn" onClick={() => setShowEditForm(false)}>×</button>
+            </div>
+            <form className="appointment-form" onSubmit={e => {
+              e.preventDefault();
+              setCitas(prev => prev.map(cita => cita.id === editAppointment.id ? { ...editAppointment } : cita));
+              setShowEditForm(false);
+            }}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Cliente</label>
+                  <input
+                    type="text"
+                    value={editAppointment.cliente}
+                    onChange={e => setEditAppointment({ ...editAppointment, cliente: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Teléfono</label>
+                  <input
+                    type="tel"
+                    value={editAppointment.telefono}
+                    onChange={e => setEditAppointment({ ...editAppointment, telefono: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Servicio</label>
+                  <input
+                    type="text"
+                    value={editAppointment.servicio}
+                    onChange={e => setEditAppointment({ ...editAppointment, servicio: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Fecha</label>
+                  <input
+                    type="date"
+                    value={editAppointment.fecha}
+                    onChange={e => setEditAppointment({ ...editAppointment, fecha: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Hora</label>
+                  <input
+                    type="time"
+                    value={editAppointment.hora}
+                    onChange={e => setEditAppointment({ ...editAppointment, hora: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Notas</label>
+                <textarea
+                  value={editAppointment.notas}
+                  onChange={e => setEditAppointment({ ...editAppointment, notas: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div className="form-buttons">
+                <button type="button" className="btn-cancel-form" onClick={() => setShowEditForm(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-submit">
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para nuevo empleado */}
+      {showEmployeeForm && (
+        <div className="modal-overlay" onClick={() => setShowEmployeeForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Nuevo Empleado</h3>
+              <button className="close-btn" onClick={() => setShowEmployeeForm(false)}>×</button>
+            </div>
+            <form className="appointment-form" onSubmit={e => { e.preventDefault(); setShowEmployeeForm(false); }}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Nombre</label>
+                  <input type="text" value={newEmployee.nombre} onChange={e => setNewEmployee({ ...newEmployee, nombre: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input type="email" value={newEmployee.email} onChange={e => setNewEmployee({ ...newEmployee, email: e.target.value })} required />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Contraseña</label>
+                  <input type="password" value={newEmployee.password} onChange={e => setNewEmployee({ ...newEmployee, password: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>Rol</label>
+                  <select value={newEmployee.rol} onChange={e => setNewEmployee({ ...newEmployee, rol: e.target.value })} required>
+                    <option value="empleado">Empleado</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-buttons">
+                <button type="button" className="btn-cancel-form" onClick={() => setShowEmployeeForm(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-submit">
+                  Registrar Empleado
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para nuevo cliente */}
+      {showClientForm && (
+        <div className="modal-overlay" onClick={() => setShowClientForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Nuevo Cliente</h3>
+              <button className="close-btn" onClick={() => setShowClientForm(false)}>×</button>
+            </div>
+            <form className="appointment-form" onSubmit={e => { e.preventDefault(); setShowClientForm(false); }}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Nombre</label>
+                  <input type="text" value={newClient.nombre} onChange={e => setNewClient({ ...newClient, nombre: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input type="email" value={newClient.email} onChange={e => setNewClient({ ...newClient, email: e.target.value })} required />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Contraseña</label>
+                  <input type="password" value={newClient.password} onChange={e => setNewClient({ ...newClient, password: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>Teléfono</label>
+                  <input type="tel" value={newClient.telefono} onChange={e => setNewClient({ ...newClient, telefono: e.target.value })} required />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Fecha de Nacimiento</label>
+                  <input type="date" value={newClient.fechaNacimiento} onChange={e => setNewClient({ ...newClient, fechaNacimiento: e.target.value })} required />
+                </div>
+              </div>
+              <div className="form-buttons">
+                <button type="button" className="btn-cancel-form" onClick={() => setShowClientForm(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-submit">
+                  Registrar Cliente
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
                 </div>
               )}
               <button className="btn-new-appointment-modal" onClick={handleNewAppointment}>

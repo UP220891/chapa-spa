@@ -32,7 +32,8 @@ async function createEmpleado(data) {
       .input('nombre_empleado', sql.VarChar(50), data.nombre_empleado)
       .input('id_especialidad', sql.Int, data.id_especialidad)
       .input('id_horario', sql.Int, data.id_horario)
-      .query('INSERT INTO T_Empleados (nombre_empleado, id_especialidad, id_horario) VALUES (@nombre_empleado, @id_especialidad, @id_horario)');
+      .input('rol', sql.NVarChar(20), data.rol || 'empleado')
+      .query('INSERT INTO T_Empleados (nombre_empleado, id_especialidad, id_horario, rol) VALUES (@nombre_empleado, @id_especialidad, @id_horario, @rol)');
     return result;
   } catch (err) {
     throw err;
@@ -48,7 +49,8 @@ async function updateEmpleado(id_empleado, data) {
       .input('nombre_empleado', sql.VarChar(50), data.nombre_empleado)
       .input('id_especialidad', sql.Int, data.id_especialidad)
       .input('id_horario', sql.Int, data.id_horario)
-      .query('UPDATE T_Empleados SET nombre_empleado = @nombre_empleado, id_especialidad = @id_especialidad, id_horario = @id_horario WHERE id_empleado = @id_empleado');
+      .input('rol', sql.NVarChar(20), data.rol || 'empleado')
+      .query('UPDATE T_Empleados SET nombre_empleado = @nombre_empleado, id_especialidad = @id_especialidad, id_horario = @id_horario, rol = @rol WHERE id_empleado = @id_empleado');
     return result;
   } catch (err) {
     throw err;

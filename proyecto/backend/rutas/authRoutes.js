@@ -60,7 +60,6 @@ router.post('/register', [
   next();
 }, async (req, res) => {
   const { nombre, email, password, telefono, fechaNacimiento } = req.body;
-  // ...lógica existente...
   if (!nombre || !email || !password || !telefono || !fechaNacimiento) {
     return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
   }
@@ -113,7 +112,6 @@ router.post('/login', [
   next();
 }, async (req, res) => {
   const { email, password } = req.body;
-  // ...lógica existente...
   try {
     const pool = await poolPromise;
     const result = await pool.request()
@@ -151,8 +149,8 @@ router.get('/perfil', verificarToken, (req, res) => {
 
 // Endpoint protegido para registrar empleados (solo admin)
 router.post('/register-empleado', verificarToken, async (req, res) => {
-  if (!req.user || req.user.tipo_usuario !== 'empleado' || req.user.rol !== 'admin') {
-    return res.status(403).json({ mensaje: 'Solo el admin puede crear empleados o clientes' });
+  if (!req.user || req.user.tipo_usuario !== 'empleado' || (req.user.rol !== 'admin' && req.user.rol !== 'empleado')) {
+    return res.status(403).json({ mensaje: 'Solo empleados o admin pueden crear empleados o clientes' });
   }
   const { nombre, email, password, telefono, fechaNacimiento, rol, tipo_usuario } = req.body;
   if (!nombre || !email || !password || !telefono || !fechaNacimiento) {
