@@ -1,0 +1,132 @@
+/* Estilos generales */
+.ubicacion-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f7fafd;
+  padding: 2rem;
+}
+
+/* Contenedor principal */
+.ubicacion-card {
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  max-width: 900px;
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+/* Título */
+.ubicacion-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #204d47;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Contenedor del mapa */
+.mapa-container {
+  height: 400px;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  border: 1px solid #e0e9f0;
+}
+
+/* Estilos para la información de contacto */
+.ubicacion-info {
+  background: #f0f7f6;
+  border-radius: 10px;
+  padding: 1.8rem;
+  margin-top: 1.5rem;
+}
+
+.info-block {
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+}
+
+.info-icon {
+  background: #357a6c;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.info-label {
+  color: #357a6c;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+.info-value {
+  color: #204d47;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+/* Botones de acción */
+.ubicacion-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.btn-ubicacion {
+  border-radius: 100px;
+  padding: 0.7rem 1.8rem;
+  font-weight: 600;
+  font-family: "Montserrat", sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primario {
+  background: #357a6c;
+  color: white;
+  border: none;
+}
+
+.btn-primario:hover {
+  background: #204d47;
+  transform: translateY(-2px);
+}
+
+.btn-secundario {
+  background: white;
+  color: #357a6c;
+  border: 2px solid #357a6c;
+}
+
+.btn-secundario:hover {
+  background: #f0f7f6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ubicacion-card {
+    padding: 1.5rem;
+  }
+  
+  .mapa-container {
+    height: 300px;
+  }
+}
