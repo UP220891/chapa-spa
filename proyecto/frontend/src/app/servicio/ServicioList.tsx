@@ -22,6 +22,7 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
           <h3 className={styles.servicioNombre}>{servicio.nombre}</h3>
           <p className={styles.servicioDescripcion}>{servicio.descripcion}</p>
           <p className={styles.servicioPrecio}>${servicio.precio.toFixed(2)}</p>
+          <button className={styles.reservaBtn}>Reserva ahora</button>
         </div>
       ))}
     </div>
