@@ -1,4 +1,5 @@
 "use client";
+import "../styles/notification.css";
 
 import React from "react";
 
@@ -15,6 +16,20 @@ const CitasForm: React.FC = () => {
     servicio: "" as Servicio,
     notas: ""
   });
+  const [notification, setNotification] = React.useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [showNotification, setShowNotification] = React.useState(false);
+  React.useEffect(() => {
+    if (notification) {
+      setShowNotification(true);
+      if (notification.type === 'success') {
+        const timer = setTimeout(() => {
+          setShowNotification(false);
+          setNotification(null);
+        }, 2500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [notification]);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [mensaje, setMensaje] = React.useState<string>("");
   const [error, setError] = React.useState<string>("");
@@ -30,16 +45,37 @@ const CitasForm: React.FC = () => {
     setError("");
     try {
       await crearCita(form);
-      setMensaje("¡Cita reservada exitosamente!");
+      setNotification({ type: 'success', message: '¡Cita reservada exitosamente!' });
       setForm({ nombre: "", apellidos: "", email: "", numero: "", fecha: "", hora: "", servicio: "", notas: "" });
     } catch (err: any) {
-      setError(err?.message || "Error al reservar la cita");
+      setNotification({ type: 'error', message: err?.message || "Error al reservar la cita" });
     }
     setLoading(false);
   };
 
   return (
-    <div className="register-container">
+    <div className="register-container" style={{ position: 'relative' }}>
+      {notification && (
+        <div
+          className={`notification-popup ${notification.type} ${showNotification ? 'show' : 'hide'}`}
+          style={{ position: 'absolute', top: 30, left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+        >
+          <span className="notification-icon">
+            {notification.type === 'error' ? '⚠️' : '✅'}
+          </span>
+          {notification.message}
+          <button
+            className="notification-close"
+            onClick={() => {
+              setShowNotification(false);
+              setTimeout(() => setNotification(null), 400);
+            }}
+            aria-label="Cerrar notificación"
+          >
+            &times;
+          </button>
+        </div>
+      )}
       <div className="register-card">
         <div className="register-image-section">
           <img src="/images/cita.png" alt="Cita" className="register-image" />
