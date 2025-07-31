@@ -62,11 +62,11 @@ const Conocenos = () => {
             <div className="team-grid">
               <div className="team-member">
                 <img 
-                  src="/team/terapeuta1.jpg" 
+                  src="/images/perro2.jpg" 
                   alt="Mariana González" 
                   className="member-avatar"
                 />
-                <h3 className="member-name">Mariana González</h3>
+                <h3 className="member-name">Jeinny Melissa Villalobos Duron</h3>
                 <p className="member-role">Terapeuta Principal</p>
                 <p className="section-content" style={{ fontSize: '1rem' }}>
                   Especialista en masajes descontracturantes y aromaterapia
@@ -75,11 +75,11 @@ const Conocenos = () => {
               
               <div className="team-member">
                 <img 
-                  src="/team/esteticista.jpg" 
+                  src="/images/perro1.jpg" 
                   alt="Laura Méndez" 
                   className="member-avatar"
                 />
-                <h3 className="member-name">Laura Méndez</h3>
+                <h3 className="member-name">Braulio Lopez Hernandez</h3>
                 <p className="member-role">Esteticista Certificada</p>
                 <p className="section-content" style={{ fontSize: '1rem' }}>
                   Experta en tratamientos faciales y corporales
@@ -88,11 +88,24 @@ const Conocenos = () => {
               
               <div className="team-member">
                 <img 
-                  src="/team/gerente.jpg" 
+                  src="/images/perro3.jpg" 
                   alt="Ricardo Torres" 
                   className="member-avatar"
                 />
-                <h3 className="member-name">Ricardo Torres</h3>
+                <h3 className="member-name">Alondra Chapa Macias</h3>
+                <p className="member-role">Gerente de Experiencia</p>
+                <p className="section-content" style={{ fontSize: '1rem' }}>
+                  Encargado de tu experiencia personalizada
+                </p>
+              </div>
+
+              <div className="team-member">
+                <img 
+                  src="/images/perro4.jpg" 
+                  alt="Ricardo Torres" 
+                  className="member-avatar"
+                />
+                <h3 className="member-name">Flor de Maria Gomez Ojeda</h3>
                 <p className="member-role">Gerente de Experiencia</p>
                 <p className="section-content" style={{ fontSize: '1rem' }}>
                   Encargado de tu experiencia personalizada
