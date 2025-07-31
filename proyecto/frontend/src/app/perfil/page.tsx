@@ -13,7 +13,7 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import Navbar from "../components/Navbar";
+import Navbar from "@/app/components/Navbar";
 
 const Perfil = () => {
   const router = useRouter();
@@ -108,20 +108,31 @@ const Perfil = () => {
     <>
       <Navbar usuario={usuario} />
       <Box sx={{ minHeight: "100vh", bgcolor: "#f7fafd", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Card sx={{ minWidth: 600, maxWidth: 1000, width: "100%", mx: 2, boxShadow: "0 8px 32px rgba(31,38,135,0.13)", borderRadius: 24, p: 7, display: "flex", flexDirection: "column", alignItems: "center", background: "#f7fafd", border: "none" }}>
-          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 2 }}>
-            <Avatar sx={{ bgcolor: '#204d47', width: 130, height: 130, fontSize: 54, mb: 2, boxShadow: "0 4px 16px rgba(31,38,135,0.13)", border: "5px solid #e0f1ee" }}>
+        <Card sx={{ minWidth: 700, maxWidth: 1200, width: "100%", mx: 2, boxShadow: "0 12px 48px rgba(31,38,135,0.18)", borderRadius: 32, p: 0, background: "#fff", border: "none", overflow: "hidden" }}>
+          <Box sx={{
+            background: "linear-gradient(90deg, #204d47 60%, #357a6c 100%)",
+            py: 7,
+            px: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            position: "relative"
+          }}>
+            <Avatar sx={{ bgcolor: '#fff', color: '#204d47', width: 180, height: 180, fontSize: 80, mb: 3, boxShadow: "0 6px 24px rgba(31,38,135,0.18)", border: "7px solid #e0f1ee" }}>
               {usuario.imagen_perfil ? (
                 <img src={usuario.imagen_perfil} alt="Perfil" style={{ width: "100%", height: "100%", borderRadius: "50%" }} />
               ) : (
                 (usuario.nombre_cliente?.charAt(0) || usuario.nombre_empleado?.charAt(0) || "U").toUpperCase()
               )}
             </Avatar>
-            <Typography sx={{ color: "#204d47", fontWeight: 900, fontSize: "2.6rem", letterSpacing: "0.04em", fontFamily: "Montserrat, sans-serif", mb: 3, mt: 1, textAlign: "center" }}>
-              Mi Perfil
+            <Typography sx={{ color: "#fff", fontWeight: 900, fontSize: "2.7rem", letterSpacing: "0.04em", fontFamily: "Montserrat, sans-serif", mb: 2, mt: 1, textAlign: "center" }}>
+              ¡Bienvenido, {usuario.nombre_cliente || usuario.nombre_empleado || usuario.email}!
+            </Typography>
+            <Typography sx={{ color: "#e0f1ee", fontWeight: 500, fontSize: "1.25rem", fontFamily: "Montserrat, sans-serif", mb: 0, textAlign: "center" }}>
+              Tu perfil personal
             </Typography>
           </Box>
-          <CardContent sx={{ width: "100%", pt: 0, px: 0 }}>
+          <CardContent sx={{ width: "100%", pt: 0, px: 0, background: "#fff", display: "flex", flexDirection: "column", gap: 3, alignItems: "center", minHeight: 350, justifyContent: "center" }}>
             {editando ? (
               <form onSubmit={handleSubmit} style={{
                 display: "flex",
@@ -211,39 +222,39 @@ const Perfil = () => {
               </form>
             ) : (
               <>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3, background: "#fff", borderRadius: 12, boxShadow: "0 2px 12px rgba(31,38,135,0.07)", p: 4, fontFamily: "Montserrat, sans-serif" }}>
-                  <Box sx={{ display: "flex", flexDirection: "row", gap: 3, mb: 2 }}>
-                    <Box sx={{ flex: "1 1 45%", minWidth: 220 }}>
-                      <Typography sx={{ color: "#204d47", fontWeight: 700, fontSize: "1.1rem", fontFamily: "Montserrat, sans-serif", mb: 1 }}>Nombre</Typography>
-                      <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.08rem", fontFamily: "Montserrat, sans-serif" }}>{usuario.nombre_cliente || usuario.nombre_empleado || usuario.email}</Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mb: 3, background: "#fff", borderRadius: 18, boxShadow: "0 2px 12px rgba(31,38,135,0.07)", p: 5, fontFamily: "Montserrat, sans-serif", width: "95%", maxWidth: 900 }}>
+                  <Box sx={{ display: "flex", flexDirection: "row", gap: 6, mb: 2, justifyContent: "space-between" }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ color: "#204d47", fontWeight: 700, fontSize: "1.35rem", fontFamily: "Montserrat, sans-serif", mb: 1 }}>Nombre</Typography>
+                      <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.22rem", fontFamily: "Montserrat, sans-serif" }}>{usuario.nombre_cliente || usuario.nombre_empleado || usuario.email}</Typography>
                     </Box>
-                    <Box sx={{ flex: "1 1 45%", minWidth: 220 }}>
-                      <Typography sx={{ color: "#204d47", fontWeight: 700, fontSize: "1.1rem", fontFamily: "Montserrat, sans-serif", mb: 1 }}>Email</Typography>
-                      <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.08rem", fontFamily: "Montserrat, sans-serif" }}>{usuario.correo_electronico || usuario.email}</Typography>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ color: "#204d47", fontWeight: 700, fontSize: "1.35rem", fontFamily: "Montserrat, sans-serif", mb: 1 }}>Email</Typography>
+                      <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.22rem", fontFamily: "Montserrat, sans-serif" }}>{usuario.correo_electronico || usuario.email}</Typography>
                     </Box>
                   </Box>
-                  <Box sx={{ display: "flex", flexDirection: "row", gap: 3, mb: 2 }}>
-                    <Box sx={{ flex: "1 1 45%", minWidth: 220 }}>
-                      <Typography sx={{ color: "#204d47", fontWeight: 700, fontSize: "1.1rem", fontFamily: "Montserrat, sans-serif", mb: 1 }}>Teléfono</Typography>
-                      <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.08rem", fontFamily: "Montserrat, sans-serif" }}>{usuario.telefono}</Typography>
+                  <Box sx={{ display: "flex", flexDirection: "row", gap: 6, mb: 2, justifyContent: "space-between" }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ color: "#204d47", fontWeight: 700, fontSize: "1.35rem", fontFamily: "Montserrat, sans-serif", mb: 1 }}>Teléfono</Typography>
+                      <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.22rem", fontFamily: "Montserrat, sans-serif" }}>{usuario.telefono}</Typography>
                     </Box>
-                    <Box sx={{ flex: "1 1 45%", minWidth: 220 }}>
-                      <Typography sx={{ color: "#204d47", fontWeight: 700, fontSize: "1.1rem", fontFamily: "Montserrat, sans-serif", mb: 1 }}>Fecha de nacimiento</Typography>
-                      <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.08rem", fontFamily: "Montserrat, sans-serif" }}>{usuario.fecha_nacimiento || usuario.fecha_registro?.split("T")[0]}</Typography>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ color: "#204d47", fontWeight: 700, fontSize: "1.35rem", fontFamily: "Montserrat, sans-serif", mb: 1 }}>Fecha de nacimiento</Typography>
+                      <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.22rem", fontFamily: "Montserrat, sans-serif" }}>{usuario.fecha_nacimiento || usuario.fecha_registro?.split("T")[0]}</Typography>
                     </Box>
                   </Box>
                 </Box>
-                <Box sx={{ display: "flex", flexDirection: "row", gap: 2, justifyContent: "flex-start", width: "100%", mt: 2 }}>
+                <Box sx={{ display: "flex", flexDirection: "row", gap: 5, justifyContent: "center", width: "100%", mt: 1 }}>
                   <Button
                     variant="contained"
-                    sx={{ background: "#204d47", color: "#fff", borderRadius: "10px", fontWeight: 700, fontFamily: "Montserrat, sans-serif", fontSize: "1.1rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.08)", letterSpacing: "0.03em", px: 4, py: 1.5, '&:hover': { background: "#357a6c" } }}
+                    sx={{ background: "#204d47", color: "#fff", borderRadius: "14px", fontWeight: 700, fontFamily: "Montserrat, sans-serif", fontSize: "1.25rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.10)", letterSpacing: "0.03em", px: 6, py: 2.5, '&:hover': { background: "#357a6c" } }}
                     onClick={() => setEditando(true)}
                   >
                     Editar perfil
                   </Button>
                   <Button
                     variant="outlined"
-                    sx={{ background: "#fff", color: "#357a6c", border: "2px solid #357a6c", borderRadius: "10px", fontWeight: 700, fontFamily: "Montserrat, sans-serif", fontSize: "1.1rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.08)", letterSpacing: "0.03em", px: 4, py: 1.5, '&:hover': { background: "#e0f1ee" } }}
+                    sx={{ background: "#fff", color: "#357a6c", border: "2px solid #357a6c", borderRadius: "14px", fontWeight: 700, fontFamily: "Montserrat, sans-serif", fontSize: "1.25rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.10)", letterSpacing: "0.03em", px: 6, py: 2.5, '&:hover': { background: "#e0f1ee" } }}
                     onClick={() => router.push("/perfil/historial-citas")}
                   >
                     Historial de citas
