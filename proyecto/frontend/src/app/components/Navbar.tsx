@@ -36,10 +36,10 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
   };
 
   return (
-    <header className="w-full flex items-center px-4 py-4 shadow-sm bg-white">
+    <header className="w-full flex items-center px-8 py-4 shadow-sm bg-white">
       {/* Bloque izquierdo: navegación */}
       <nav className="flex-1 flex justify-start">
-        <ul className="flex flex-wrap gap-6 text-gray-700 text-sm font-medium">
+        <ul className="flex flex-wrap gap-10 text-gray-700 text-sm font-medium">
           <li><a href="/" className="hover:text-pink-600">Inicio</a></li>
           <li><a href="/conocenos" className="hover:text-pink-600">Conócenos</a></li>
           <li><a href="/servicio" className="hover:text-pink-600">Servicios</a></li>

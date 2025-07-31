@@ -1,5 +1,4 @@
 import Navbar from './components/Navbar';
-import HeroSection from '../components/HeroSection';
 
 export default function Home() {
   return (
@@ -37,14 +36,8 @@ export default function Home() {
       <div
         className="homepage-header"
         style={{
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'center',
-          alignItems: 'center',
           width: '100%',
-          maxWidth: '900px',
-          height: '60px',
-          margin: '0 auto 1.2rem auto',
+          margin: '0 0 1.2rem 0',
           padding: 0,
           boxSizing: 'border-box',
         }}>
