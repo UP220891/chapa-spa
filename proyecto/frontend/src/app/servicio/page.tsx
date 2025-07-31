@@ -60,7 +60,7 @@ const servicios = [
 ];
 
 const Page = () => {
-      const [busqueda, setBusqueda] = useState(''); // <-- AQUÍ
+      const [busqueda, setBusqueda] = useState(''); 
 
   const serviciosFiltrados = servicios.filter(servicio =>
     servicio.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
