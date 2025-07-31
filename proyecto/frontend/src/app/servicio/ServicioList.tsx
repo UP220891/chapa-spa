@@ -1,13 +1,16 @@
 import React from 'react';
 import styles from '../../styles/ServicioList.module.css';
+
+interface Servicio {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  imagen: string;
+}
+
 interface ServicioListProps {
-  servicios: {
-    id: number;
-    nombre: string;
-    descripcion: string;
-    precio: number;
-    imagen: string;
-  }[];
+  servicios: Servicio[];
 }
 
 const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {

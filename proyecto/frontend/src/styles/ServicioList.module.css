@@ -1,44 +1,78 @@
-.container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    padding: 20px;
+.servicioList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  padding: 2rem 0;
+  background: #f5f5fa;
 }
 
-.serviceCard {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    margin: 10px;
-    padding: 15px;
-    width: 250px;
-    text-align: center;
-    transition: transform 0.2s;
+.servicioCard {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(44, 62, 80, 0.12);
+  padding: 1.5rem 1rem;
+  width: 260px;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-bottom: 1rem;
 }
 
-.serviceCard:hover {
-    transform: scale(1.05);
+.servicioCard:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 8px 24px rgba(44, 62, 80, 0.18);
 }
 
-.serviceImage {
-    width: 100%;
-    height: auto;
-    border-radius: 5px;
+.servicioImage {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  background: #e0e0e0;
 }
 
-.serviceName {
-    font-size: 1.5em;
-    margin: 10px 0;
+.servicioNombre {
+  color: #256029;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 0.7rem 0 0.3rem 0;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 8px rgba(44, 62, 80, 0.06);
+  text-align: center;
+  transition: color 0.2s;
 }
 
-.serviceDescription {
-    font-size: 1em;
-    color: #666;
-    margin: 10px 0;
+.servicioCard:hover .servicioNombre {
+  color: #1976d2;
 }
 
-.servicePrice {
-    font-size: 1.2em;
-    color: #333;
-    font-weight: bold;
+.servicioDescripcion {
+  color: #444; /* Gris oscuro para mejor contraste */
+  font-size: 1rem;
+  margin-bottom: 0.8rem;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+  background: rgba(255,255,255,0.7);
+  border-radius: 6px;
+  padding: 0.5rem 0.3rem;
+}
+
+.servicioPrecio {
+  color: #1976d2;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.tituloServicios {
+  color: #2e7d32;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 2rem 0 1rem 0;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  letter-spacing: 0.02em;
 }
