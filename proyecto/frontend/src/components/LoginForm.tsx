@@ -4,12 +4,24 @@ function LoginForm({ showHomeButton = false }) {
   // Estados para email y password
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
   // Manejar submit
+  const validate = (email: string, password: string) => {
+    if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) return "El correo no es válido";
+    if (!password) return "La contraseña es obligatoria";
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errorMsg = validate(email, password);
+    if (errorMsg) {
+      setError(errorMsg);
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -69,26 +81,55 @@ function LoginForm({ showHomeButton = false }) {
               }}
             />
             <label htmlFor="password" style={{ fontSize: '1.08rem', fontWeight: 700, color: '#357a6c', marginBottom: '0.1rem', letterSpacing: '0.02em' }}>Contraseña</label>
-            <input
-              type="password"
-              id="password"
-              placeholder="Ingresar Contraseña"
-              autoComplete="current-password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              style={{
-                padding: '0.7rem',
-                fontSize: '1rem',
-                border: '1px solid #bbb',
-                borderRadius: '6px',
-                marginBottom: '0.3rem',
-                background: '#f7fafd',
-                fontWeight: 600,
-                color: '#204d47',
-                fontFamily: 'Montserrat, sans-serif',
-                letterSpacing: '0.03em',
-              }}
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                placeholder="Ingresar Contraseña"
+                autoComplete="current-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.7rem',
+                  fontSize: '1rem',
+                  border: '1px solid #bbb',
+                  borderRadius: '6px',
+                  marginBottom: '0.3rem',
+                  background: '#f7fafd',
+                  fontWeight: 600,
+                  color: '#204d47',
+                  fontFamily: 'Montserrat, sans-serif',
+                  letterSpacing: '0.03em',
+                  paddingRight: '2.2rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                onClick={() => setShowPassword(v => !v)}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  right: '0.7rem',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  zIndex: 2,
+                }}
+              >
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#357a6c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-5 0-9.27-3.11-10.94-7.5a10.45 10.45 0 0 1 2.54-3.73"/><path d="M1 1l22 22"/><path d="M9.53 9.53A3.5 3.5 0 0 0 12 15.5c.96 0 1.84-.36 2.5-.97"/><path d="M14.47 14.47A3.5 3.5 0 0 0 12 8.5c-.96 0-1.84.36-2.5.97"/></svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#357a6c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12C2.73 7.11 7 4 12 4s9.27-3.11 11 8c-1.73 4.89-6 8-11 8s-9.27-3.11-11-8z"/><circle cx="12" cy="12" r="3.5"/></svg>
+                )}
+              </button>
+            </div>
             <style>{`
               input::placeholder {
                 color: #7a8a8a;

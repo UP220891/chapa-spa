@@ -4,11 +4,23 @@ const { poolPromise, sql } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { verificarToken } = require('./auth');
+const { body, validationResult } = require('express-validator');
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
 // Actualizar perfil del usuario autenticado (cliente)
-router.put('/update-profile', verificarToken, async (req, res) => {
+router.put('/update-profile', verificarToken, [
+  body('nombre').notEmpty().withMessage('El nombre es obligatorio'),
+  body('telefono').notEmpty().withMessage('El teléfono es obligatorio'),
+  body('email').isEmail().withMessage('El correo debe ser válido'),
+  body('fecha_nacimiento').isISO8601().withMessage('La fecha de nacimiento debe ser válida'),
+], (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
+  next();
+}, async (req, res) => {
   const { nombre, telefono, email, fecha_nacimiento } = req.body;
   const user = req.user;
   if (!user || !user.id_cliente) {
@@ -34,8 +46,21 @@ router.put('/update-profile', verificarToken, async (req, res) => {
 });
 
 // Registro: crea un nuevo cliente y usuario de autenticación
-router.post('/register', async (req, res) => {
+router.post('/register', [
+  body('nombre').notEmpty().withMessage('El nombre es obligatorio'),
+  body('email').isEmail().withMessage('El correo debe ser válido'),
+  body('password').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
+  body('telefono').notEmpty().withMessage('El teléfono es obligatorio'),
+  body('fechaNacimiento').isISO8601().withMessage('La fecha de nacimiento debe ser válida'),
+], (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
+  next();
+}, async (req, res) => {
   const { nombre, email, password, telefono, fechaNacimiento } = req.body;
+  // ...lógica existente...
   if (!nombre || !email || !password || !telefono || !fechaNacimiento) {
     return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
   }
@@ -77,8 +102,18 @@ router.post('/register', async (req, res) => {
 });
 
 // Login: valida contra T_Auth y devuelve token con info de usuario
-router.post('/login', async (req, res) => {
+router.post('/login', [
+  body('email').isEmail().withMessage('El correo debe ser válido'),
+  body('password').notEmpty().withMessage('La contraseña es obligatoria'),
+], (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
+  next();
+}, async (req, res) => {
   const { email, password } = req.body;
+  // ...lógica existente...
   try {
     const pool = await poolPromise;
     const result = await pool.request()

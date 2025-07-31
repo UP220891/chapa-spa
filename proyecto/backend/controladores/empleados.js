@@ -1,4 +1,5 @@
 const Empleados = require('../modelos/empleados');
+const { validationResult } = require('express-validator');
 
 // Listar todos los empleados
 async function listarEmpleados(req, res) {
@@ -23,6 +24,10 @@ async function obtenerEmpleado(req, res) {
 
 // Crear un nuevo empleado
 async function crearEmpleado(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Empleados.createEmpleado(req.body);
     res.status(201).json({ mensaje: 'Empleado creado correctamente' });
@@ -33,6 +38,10 @@ async function crearEmpleado(req, res) {
 
 // Actualizar un empleado
 async function actualizarEmpleado(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
   try {
     await Empleados.updateEmpleado(req.params.id, req.body);
     res.json({ mensaje: 'Empleado actualizado correctamente' });
