@@ -97,3 +97,10 @@
   transform: scale(1.04);
   box-shadow: 0 8px 24px rgba(32,77,71,0.18);
 }
+
+.servicioDuracion {
+  color: #357a6c;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
