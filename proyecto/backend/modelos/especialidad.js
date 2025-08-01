@@ -28,10 +28,16 @@ async function getEspecialidadById(id) {
 async function createEspecialidad(data) {
   try {
     const pool = await poolPromise;
-    await pool.request()
+    const result = await pool.request()
       .input('nombre', sql.VarChar(50), data.nombre_especialidad)
-      .query('INSERT INTO C_Especialidad (nombre_especialidad) VALUES (@nombre)');
+      .query('INSERT INTO C_Especialidad (nombre_especialidad) OUTPUT INSERTED.id_especialidad, INSERTED.nombre_especialidad VALUES (@nombre)');
+    if (!result.recordset || !result.recordset[0]) {
+      console.error('No se insertó la especialidad o no se retornó el registro:', result);
+      return null;
+    }
+    return result.recordset[0];
   } catch (error) {
+    console.error('Error en createEspecialidad:', error);
     throw error;
   }
 }

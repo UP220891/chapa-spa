@@ -29,10 +29,13 @@ async function crearEspecialidad(req, res) {
     return res.status(400).json({ errores: errors.array() });
   }
   try {
-    await Especialidad.createEspecialidad(req.body);
-    res.status(201).json({ mensaje: 'Especialidad creada correctamente' });
+    const nueva = await Especialidad.createEspecialidad(req.body);
+    if (!nueva || !nueva.id_especialidad) {
+      return res.status(500).json({ mensaje: 'No se pudo crear la especialidad' });
+    }
+    res.status(201).json({ mensaje: 'Especialidad creada correctamente', id_especialidad: nueva.id_especialidad });
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear especialidad' });
+    res.status(500).json({ mensaje: 'Error al crear especialidad', error: error.message });
   }
 }
 

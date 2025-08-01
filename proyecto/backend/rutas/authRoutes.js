@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const { poolPromise, sql } = require('../config/database');
@@ -7,6 +8,44 @@ const { verificarToken } = require('./auth');
 const { body, validationResult } = require('express-validator');
 
 const SECRET_KEY = process.env.JWT_SECRET;
+// Actualizar perfil del usuario autenticado (empleado)
+const { setHorariosEmpleado, getHorariosEmpleado } = require('../modelos/empleadohorarios');
+router.put('/update-profile-empleado', verificarToken, [
+  body('nombre').notEmpty().withMessage('El nombre es obligatorio'),
+  body('id_especialidad').isInt().withMessage('La especialidad es obligatoria'),
+  body('id_horarios').isArray({ min: 1 }).withMessage('Debes seleccionar al menos un horario'),
+  body('id_horarios.*').isInt().withMessage('Cada horario debe ser un número'),
+], (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errores: errors.array() });
+  }
+  next();
+}, async (req, res) => {
+  const { nombre, id_especialidad, id_horarios } = req.body;
+  const user = req.user;
+  if (!user || !user.id_empleado) {
+    return res.status(401).json({ mensaje: 'No autorizado' });
+  }
+  try {
+    // Log para depuración
+    console.log('Datos recibidos para actualizar empleado:', { nombre, id_especialidad, id_horarios, id_empleado: user.id_empleado });
+    const pool = await poolPromise;
+    await pool.request()
+      .input('id_empleado', sql.Int, user.id_empleado)
+      .input('nombre_empleado', sql.VarChar(50), nombre)
+      .input('id_especialidad', sql.Int, id_especialidad)
+      .query('UPDATE T_Empleados SET nombre_empleado = @nombre_empleado, id_especialidad = @id_especialidad WHERE id_empleado = @id_empleado');
+    // Asignar horarios (muchos a muchos)
+    await setHorariosEmpleado(user.id_empleado, id_horarios);
+    // Obtener los ids de horarios asignados
+    const horariosAsignados = await getHorariosEmpleado(user.id_empleado);
+    res.json({ mensaje: 'Perfil de empleado actualizado correctamente', id_horarios: horariosAsignados });
+  } catch (error) {
+    console.error('Error al actualizar perfil de empleado:', error);
+    res.status(500).json({ mensaje: 'Error al actualizar perfil de empleado', error: error.message });
+  }
+});
 
 // Actualizar perfil del usuario autenticado (cliente)
 router.put('/update-profile', verificarToken, [
@@ -133,7 +172,10 @@ router.post('/login', [
       const empleado = await pool.request()
         .input('id_empleado', sql.Int, user.id_empleado)
         .query('SELECT * FROM T_Empleados WHERE id_empleado = @id_empleado');
-      userInfo = { ...userInfo, ...empleado.recordset[0] };
+      // Obtener los id_horarios del empleado
+      const { getHorariosEmpleado } = require('../modelos/empleadohorarios');
+      const id_horarios = await getHorariosEmpleado(user.id_empleado);
+      userInfo = { ...userInfo, ...empleado.recordset[0], id_horarios };
     }
     const token = jwt.sign({ id: user.id, email: user.email, ...userInfo }, SECRET_KEY, { expiresIn: '2h' });
     res.json({ token, usuario: userInfo });
@@ -143,8 +185,14 @@ router.post('/login', [
 });
 
 // Ruta protegida ejemplo
-router.get('/perfil', verificarToken, (req, res) => {
-  res.json({ mensaje: 'Acceso autorizado', usuario: req.user });
+router.get('/perfil', verificarToken, async (req, res) => {
+  let usuario = req.user;
+  if (usuario && usuario.tipo_usuario === 'empleado' && usuario.id_empleado) {
+    const { getHorariosEmpleado } = require('../modelos/empleadohorarios');
+    const id_horarios = await getHorariosEmpleado(usuario.id_empleado);
+    usuario = { ...usuario, id_horarios };
+  }
+  res.json({ mensaje: 'Acceso autorizado', usuario });
 });
 
 // Endpoint protegido para registrar empleados (solo admin)
