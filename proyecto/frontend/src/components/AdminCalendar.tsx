@@ -404,87 +404,6 @@ const AdminCalendar = () => {
                       </div>
                     </div>
                   ))}
-      {showEditForm && editAppointment && (
-        <div className="modal-overlay" onClick={() => setShowEditForm(false)}>
-          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Editar Cita</h3>
-              <button className="close-btn" onClick={() => setShowEditForm(false)}>×</button>
-            </div>
-            <form className="appointment-form" onSubmit={e => {
-              e.preventDefault();
-              setCitas(prev => prev.map(cita => cita.id === editAppointment.id ? { ...editAppointment } : cita));
-              setShowEditForm(false);
-            }}>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Cliente</label>
-                  <input
-                    type="text"
-                    value={editAppointment.cliente}
-                    onChange={e => setEditAppointment({ ...editAppointment, cliente: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Teléfono</label>
-                  <input
-                    type="tel"
-                    value={editAppointment.telefono}
-                    onChange={e => setEditAppointment({ ...editAppointment, telefono: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Servicio</label>
-                  <input
-                    type="text"
-                    value={editAppointment.servicio}
-                    onChange={e => setEditAppointment({ ...editAppointment, servicio: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Fecha</label>
-                  <input
-                    type="date"
-                    value={editAppointment.fecha}
-                    onChange={e => setEditAppointment({ ...editAppointment, fecha: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Hora</label>
-                  <input
-                    type="time"
-                    value={editAppointment.hora}
-                    onChange={e => setEditAppointment({ ...editAppointment, hora: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Notas</label>
-                <textarea
-                  value={editAppointment.notas}
-                  onChange={e => setEditAppointment({ ...editAppointment, notas: e.target.value })}
-                  rows={3}
-                />
-              </div>
-              <div className="form-buttons">
-                <button type="button" className="btn-cancel-form" onClick={() => setShowEditForm(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-submit">
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Modal para seleccionar cliente */}
       {showClientList && (
@@ -724,7 +643,7 @@ const AdminCalendar = () => {
                             </option>
                           ))}
                         </select>
-                        <input
+                        {/* <input
                           type="text"
                           value={newAppointment.cliente}
                           onChange={(e) => {
@@ -733,7 +652,7 @@ const AdminCalendar = () => {
                           }}
                           placeholder="Nombre de nuevo cliente"
                           required
-                        />
+                        /> */}
                       </>
                     ) : (
                       <input
@@ -829,6 +748,108 @@ const AdminCalendar = () => {
                   </button>
                   <button type="submit" className="btn-submit">
                     Agendar Cita
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para editar cita */}
+      {showEditForm && editAppointment && (
+        <div className="modal-overlay" onClick={() => setShowEditForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Editar Cita</h3>
+              <button className="close-btn" onClick={() => setShowEditForm(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <form className="appointment-form" onSubmit={e => {
+                e.preventDefault();
+                setCitas(prev => prev.map(cita => cita.id === editAppointment.id ? { ...editAppointment } : cita));
+                setShowEditForm(false);
+              }}>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Cliente</label>
+                    <input
+                      type="text"
+                      value={editAppointment.cliente}
+                      onChange={e => setEditAppointment({ ...editAppointment, cliente: e.target.value })}
+                      placeholder="Nombre completo del cliente"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Teléfono</label>
+                    <input
+                      type="tel"
+                      value={editAppointment.telefono}
+                      onChange={e => setEditAppointment({ ...editAppointment, telefono: e.target.value })}
+                      placeholder="Ej: +52 123 456 7890"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Servicio</label>
+                    <select
+                      value={editAppointment.servicio}
+                      onChange={e => setEditAppointment({ ...editAppointment, servicio: e.target.value })}
+                      required
+                    >
+                      <option value="">Seleccionar servicio</option>
+                      <option value="Masaje Relajante">Masaje Relajante</option>
+                      <option value="Masaje Deportivo">Masaje Deportivo</option>
+                      <option value="Facial">Facial</option>
+                      <option value="Manicure">Manicure</option>
+                      <option value="Pedicure">Pedicure</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Fecha</label>
+                    <input
+                      type="date"
+                      value={editAppointment.fecha}
+                      onChange={e => setEditAppointment({ ...editAppointment, fecha: e.target.value })}
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Hora</label>
+                    <input
+                      type="time"
+                      value={editAppointment.hora}
+                      onChange={e => setEditAppointment({ ...editAppointment, hora: e.target.value })}
+                      min="08:00"
+                      max="20:00"
+                      required
+                    />
+                    <small style={{ color: '#666', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                      Horario de atención: 9:00 AM - 6:00 PM
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label>Notas (Opcional)</label>
+                    <textarea
+                      value={editAppointment.notas || ''}
+                      onChange={e => setEditAppointment({ ...editAppointment, notas: e.target.value })}
+                      rows={3}
+                      placeholder="Comentarios adicionales, alergias, preferencias..."
+                    />
+                  </div>
+                </div>
+                <div className="form-buttons">
+                  <button type="button" className="btn-cancel-form" onClick={() => setShowEditForm(false)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-submit">
+                    Guardar Cambios
                   </button>
                 </div>
               </form>
