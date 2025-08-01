@@ -421,6 +421,7 @@
   border-radius: 6px;
   font-size: 0.9rem;
   transition: border-color 0.3s ease;
+  color: #666; /* Color gris para el texto que escribe el usuario */
 }
 
 .form-group input:focus,

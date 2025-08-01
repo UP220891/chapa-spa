@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '../app/components/Navbar';
+import { getClientes, type Cliente } from '../servicios/clientesService';
 import '../styles/admin-calendar.css';
 
 interface Cita {
@@ -54,6 +55,10 @@ const AdminCalendar = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
+  const [showClientList, setShowClientList] = useState(false);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loadingClientes, setLoadingClientes] = useState(false);
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [newEmployee, setNewEmployee] = useState({ nombre: '', email: '', password: '', rol: 'empleado' });
   const [newClient, setNewClient] = useState({ nombre: '', email: '', password: '', telefono: '', fechaNacimiento: '' });
 
@@ -73,6 +78,29 @@ const AdminCalendar = () => {
   ];
 
   const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+  // Debug effect to track modal states
+  useEffect(() => {
+    console.log('Modal states:', {
+      showModal,
+      showAppointmentForm,
+      showClientList,
+      showEditForm,
+      showEmployeeForm,
+      showClientForm
+    });
+  }, [showModal, showAppointmentForm, showClientList, showEditForm, showEmployeeForm, showClientForm]);
+
+  // Debug específico para showAppointmentForm
+  useEffect(() => {
+    console.log('🎯 showAppointmentForm cambió a:', showAppointmentForm);
+    if (showAppointmentForm) {
+      console.log('✅ Modal de cita debería estar visible ahora');
+      console.log('Cliente seleccionado:', selectedCliente);
+    } else {
+      console.log('❌ Modal de cita se cerró');
+    }
+  }, [showAppointmentForm, selectedCliente]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -129,8 +157,78 @@ const AdminCalendar = () => {
   };
 
   const handleNewAppointment = () => {
+    console.log('Abriendo formulario de nueva cita');
     setShowAppointmentForm(true);
     setShowModal(false);
+  };
+
+  const handleNewAppointmentWithClients = async () => {
+    console.log('Abriendo formulario de nueva cita con clientes');
+    setLoadingClientes(true);
+    try {
+      const clientesData = await getClientes();
+      // Los clientes ya están filtrados en la API para excluir empleados/administradores
+      setClientes(clientesData);
+      console.log('Clientes cargados:', clientesData);
+    } catch (error: any) {
+      console.error('Error al cargar clientes:', error);
+      setClientes([]); // Si hay error, usar lista vacía
+    } finally {
+      setLoadingClientes(false);
+      setShowAppointmentForm(true);
+      setShowModal(false);
+    }
+  };
+
+  const handleSelectCliente = (cliente: Cliente) => {
+    console.log('🚀 handleSelectCliente iniciado');
+    console.log('Cliente seleccionado:', cliente);
+    console.log('Estado actual showClientList:', showClientList);
+    console.log('Estado actual showAppointmentForm:', showAppointmentForm);
+    
+    setSelectedCliente(cliente);
+    setNewAppointment({
+      ...newAppointment,
+      cliente: `${cliente.nombre_cliente} ${cliente.apellido_cliente}`.trim(),
+      telefono: cliente.telefono,
+      email: cliente.correo_electronico
+    });
+    
+    console.log('Cerrando modal de clientes...');
+    setShowClientList(false);
+    
+    setTimeout(() => {
+      console.log('Abriendo modal de cita después del timeout...');
+      console.log('Estado showClientList después de timeout:', showClientList);
+      setShowAppointmentForm(true);
+      console.log('Estado showAppointmentForm después de setear true:', true);
+    }, 100); // Pequeño delay para asegurar que se cierre el modal anterior
+  };
+
+  const handleClienteDropdownChange = (clienteId: string) => {
+    console.log('Cliente seleccionado del dropdown:', clienteId);
+    if (clienteId === '') {
+      // Si selecciona "Nuevo cliente", limpiar campos
+      setSelectedCliente(null);
+      setNewAppointment({
+        ...newAppointment,
+        cliente: '',
+        telefono: '',
+        email: ''
+      });
+    } else {
+      // Buscar el cliente seleccionado
+      const cliente = clientes.find(c => c.id_cliente.toString() === clienteId);
+      if (cliente) {
+        setSelectedCliente(cliente);
+        setNewAppointment({
+          ...newAppointment,
+          cliente: `${cliente.nombre_cliente} ${cliente.apellido_cliente}`.trim(),
+          telefono: cliente.telefono,
+          email: cliente.correo_electronico
+        });
+      }
+    }
   };
 
   const handleSubmitAppointment = (e: React.FormEvent) => {
@@ -156,7 +254,22 @@ const AdminCalendar = () => {
       hora: '',
       notas: ''
     });
+    setSelectedCliente(null); // Reset selected client
     setShowAppointmentForm(false);
+  };
+
+  const handleCloseAppointmentForm = () => {
+    setShowAppointmentForm(false);
+    setSelectedCliente(null);
+    setNewAppointment({
+      cliente: '',
+      telefono: '',
+      email: '',
+      servicio: '',
+      fecha: '',
+      hora: '',
+      notas: ''
+    });
   };
 
   const updateAppointmentStatus = (id: number, newStatus: 'confirmada' | 'pendiente' | 'cancelada') => {
@@ -167,6 +280,12 @@ const AdminCalendar = () => {
 
   const days = getDaysInMonth(currentDate);
 
+  // Debug adicional antes del render
+  console.log('🎯 Renderizando componente AdminCalendar');
+  console.log('showAppointmentForm:', showAppointmentForm);
+  console.log('showClientList:', showClientList);
+  console.log('selectedCliente:', selectedCliente);
+
   return (
     <>
       <Navbar />
@@ -174,8 +293,13 @@ const AdminCalendar = () => {
         <div className="admin-header">
           <h1>Panel de Administración - Calendario de Citas</h1>
           <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-            <button className="btn-new-appointment" onClick={() => setShowAppointmentForm(true)}>
-              + Nueva Cita
+            <button 
+              className="btn-new-appointment" 
+              onClick={handleNewAppointmentWithClients}
+              disabled={loadingClientes}
+              style={{ background: '#4f46e5', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }}
+            >
+              {loadingClientes ? 'Cargando...' : '+ Nueva Cita'}
             </button>
             <button className="btn-new-employee" style={{ background: '#357a6c', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }} onClick={() => setShowEmployeeForm(true)}>
               + Nuevo Empleado
@@ -280,84 +404,105 @@ const AdminCalendar = () => {
                       </div>
                     </div>
                   ))}
-      {showEditForm && editAppointment && (
-        <div className="modal-overlay" onClick={() => setShowEditForm(false)}>
-          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()}>
+
+      {/* Modal para seleccionar cliente */}
+      {showClientList && (
+        <div className="modal-overlay" onClick={() => setShowClientList(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px' }}>
             <div className="modal-header">
-              <h3>Editar Cita</h3>
-              <button className="close-btn" onClick={() => setShowEditForm(false)}>×</button>
+              <h3>Seleccionar Cliente</h3>
+              <button className="close-btn" onClick={() => setShowClientList(false)}>×</button>
             </div>
-            <form className="appointment-form" onSubmit={e => {
-              e.preventDefault();
-              setCitas(prev => prev.map(cita => cita.id === editAppointment.id ? { ...editAppointment } : cita));
-              setShowEditForm(false);
-            }}>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Cliente</label>
-                  <input
-                    type="text"
-                    value={editAppointment.cliente}
-                    onChange={e => setEditAppointment({ ...editAppointment, cliente: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Teléfono</label>
-                  <input
-                    type="tel"
-                    value={editAppointment.telefono}
-                    onChange={e => setEditAppointment({ ...editAppointment, telefono: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Servicio</label>
-                  <input
-                    type="text"
-                    value={editAppointment.servicio}
-                    onChange={e => setEditAppointment({ ...editAppointment, servicio: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Fecha</label>
-                  <input
-                    type="date"
-                    value={editAppointment.fecha}
-                    onChange={e => setEditAppointment({ ...editAppointment, fecha: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Hora</label>
-                  <input
-                    type="time"
-                    value={editAppointment.hora}
-                    onChange={e => setEditAppointment({ ...editAppointment, hora: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Notas</label>
-                <textarea
-                  value={editAppointment.notas}
-                  onChange={e => setEditAppointment({ ...editAppointment, notas: e.target.value })}
-                  rows={3}
-                />
-              </div>
-              <div className="form-buttons">
-                <button type="button" className="btn-cancel-form" onClick={() => setShowEditForm(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-submit">
-                  Guardar Cambios
+            <div className="modal-body">
+              <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <p>Selecciona un cliente existente para agendar una cita:</p>
+                <button 
+                  className="btn-new-appointment"
+                  onClick={() => {
+                    console.log('Cerrando lista de clientes y abriendo formulario de cita');
+                    setShowClientList(false);
+                    setTimeout(() => {
+                      setShowAppointmentForm(true);
+                    }, 100);
+                  }}
+                  style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
+                >
+                  Crear cita sin cliente registrado
                 </button>
               </div>
-            </form>
+              
+              {clientes.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                  <p>No hay clientes registrados en la base de datos.</p>
+                  <button 
+                    className="btn-submit"
+                    onClick={() => {
+                      setShowClientList(false);
+                      setShowClientForm(true);
+                    }}
+                  >
+                    Registrar nuevo cliente
+                  </button>
+                </div>
+              ) : (
+                <div className="clients-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {clientes.map(cliente => (
+                    <div 
+                      key={cliente.id_cliente}
+                      className="client-item"
+                      style={{
+                        border: '1px solid #e9ecef',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                        marginBottom: '0.5rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        backgroundColor: '#fff'
+                      }}
+                      onClick={() => {
+                        console.log('Haciendo click en cliente:', cliente);
+                        handleSelectCliente(cliente);
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.backgroundColor = '#f8f9fa';
+                        e.currentTarget.style.borderColor = '#204d47';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.backgroundColor = '#fff';
+                        e.currentTarget.style.borderColor = '#e9ecef';
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <h4 style={{ margin: '0 0 0.5rem 0', color: '#204d47', fontSize: '1.1rem' }}>
+                            {cliente.nombre_cliente} {cliente.apellido_cliente}
+                          </h4>
+                          <p style={{ margin: '0.25rem 0', color: '#666', fontSize: '0.9rem' }}>
+                            <strong>Email:</strong> {cliente.correo_electronico}
+                          </p>
+                          <p style={{ margin: '0.25rem 0', color: '#666', fontSize: '0.9rem' }}>
+                            <strong>Teléfono:</strong> {cliente.telefono}
+                          </p>
+                          <p style={{ margin: '0.25rem 0', color: '#666', fontSize: '0.85rem' }}>
+                            <strong>Registrado:</strong> {new Date(cliente.fecha_registro).toLocaleDateString('es-ES')}
+                          </p>
+                        </div>
+                        <div style={{ 
+                          backgroundColor: '#204d47', 
+                          color: 'white', 
+                          padding: '0.5rem 1rem', 
+                          borderRadius: '6px',
+                          fontSize: '0.9rem',
+                          fontWeight: '600'
+                        }}>
+                          Seleccionar
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -456,7 +601,7 @@ const AdminCalendar = () => {
       )}
                 </div>
               )}
-              <button className="btn-new-appointment-modal" onClick={handleNewAppointment}>
+              <button className="btn-new-appointment-modal" onClick={handleNewAppointmentWithClients}>
                 Agendar nueva cita
               </button>
             </div>
@@ -466,99 +611,249 @@ const AdminCalendar = () => {
 
       {/* Modal para nueva cita */}
       {showAppointmentForm && (
-        <div className="modal-overlay" onClick={() => setShowAppointmentForm(false)}>
+        <div className="modal-overlay" onClick={handleCloseAppointmentForm}>
           <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Nueva Cita</h3>
-              <button className="close-btn" onClick={() => setShowAppointmentForm(false)}>×</button>
+              <h3>
+                Nueva Cita 
+                {selectedCliente && (
+                  <span style={{ fontSize: '0.9rem', fontWeight: 'normal', opacity: 0.9 }}>
+                    {' '}- {selectedCliente.nombre_cliente} {selectedCliente.apellido_cliente}
+                  </span>
+                )}
+              </h3>
+              <button className="close-btn" onClick={handleCloseAppointmentForm}>×</button>
             </div>
-            <form className="appointment-form" onSubmit={handleSubmitAppointment}>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Cliente</label>
-                  <input
-                    type="text"
-                    value={newAppointment.cliente}
-                    onChange={(e) => setNewAppointment({...newAppointment, cliente: e.target.value})}
-                    required
-                  />
+            <div className="modal-body">
+              <form className="appointment-form" onSubmit={handleSubmitAppointment}>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Cliente</label>
+                    {clientes.length > 0 ? (
+                      <>
+                        <select
+                          value={selectedCliente ? selectedCliente.id_cliente.toString() : ''}
+                          onChange={(e) => handleClienteDropdownChange(e.target.value)}
+                          style={{ marginBottom: '0.5rem' }}
+                        >
+                          <option value="">Seleccionar cliente</option>
+                          {clientes.map(cliente => (
+                            <option key={cliente.id_cliente} value={cliente.id_cliente.toString()}>
+                              {cliente.nombre_cliente} {cliente.apellido_cliente}
+                            </option>
+                          ))}
+                        </select>
+                        {/* <input
+                          type="text"
+                          value={newAppointment.cliente}
+                          onChange={(e) => {
+                            setNewAppointment({...newAppointment, cliente: e.target.value});
+                            setSelectedCliente(null);
+                          }}
+                          placeholder="Nombre de nuevo cliente"
+                          required
+                        /> */}
+                      </>
+                    ) : (
+                      <input
+                        type="text"
+                        value={newAppointment.cliente}
+                        onChange={(e) => setNewAppointment({...newAppointment, cliente: e.target.value})}
+                        placeholder="Nombre del cliente"
+                        required
+                      />
+                    )}
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Teléfono</label>
-                  <input
-                    type="tel"
-                    value={newAppointment.telefono}
-                    onChange={(e) => setNewAppointment({...newAppointment, telefono: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    value={newAppointment.email}
-                    onChange={(e) => setNewAppointment({...newAppointment, email: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Servicio</label>
-                  <select
-                    value={newAppointment.servicio}
-                    onChange={(e) => setNewAppointment({...newAppointment, servicio: e.target.value})}
-                    required
-                  >
-                    <option value="">Seleccionar servicio</option>
-                    <option value="Masaje Relajante">Masaje Relajante</option>
-                    <option value="Masaje Deportivo">Masaje Deportivo</option>
-                    <option value="Facial">Facial</option>
-                    <option value="Manicure">Manicure</option>
-                    <option value="Pedicure">Pedicure</option>
-                  </select>
-                </div>
-              </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Fecha</label>
-                  <input
-                    type="date"
-                    value={newAppointment.fecha}
-                    onChange={(e) => setNewAppointment({...newAppointment, fecha: e.target.value})}
-                    required
-                  />
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Teléfono</label>
+                    <input
+                      type="tel"
+                      value={newAppointment.telefono}
+                      onChange={(e) => setNewAppointment({...newAppointment, telefono: e.target.value})}
+                      placeholder="Ej: +52 123 456 7890"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      value={newAppointment.email}
+                      onChange={(e) => setNewAppointment({...newAppointment, email: e.target.value})}
+                      placeholder="cliente@ejemplo.com"
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Hora</label>
-                  <input
-                    type="time"
-                    value={newAppointment.hora}
-                    onChange={(e) => setNewAppointment({...newAppointment, hora: e.target.value})}
-                    required
-                  />
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Servicio</label>
+                    <select
+                      value={newAppointment.servicio}
+                      onChange={(e) => setNewAppointment({...newAppointment, servicio: e.target.value})}
+                      required
+                    >
+                      <option value="">Seleccionar servicio</option>
+                      <option value="Masaje Relajante">Masaje Relajante</option>
+                      <option value="Masaje Deportivo">Masaje Deportivo</option>
+                      <option value="Facial">Facial</option>
+                      <option value="Manicure">Manicure</option>
+                      <option value="Pedicure">Pedicure</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Fecha</label>
+                    <input
+                      type="date"
+                      value={newAppointment.fecha}
+                      onChange={(e) => setNewAppointment({...newAppointment, fecha: e.target.value})}
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="form-group">
-                <label>Notas</label>
-                <textarea
-                  value={newAppointment.notas}
-                  onChange={(e) => setNewAppointment({...newAppointment, notas: e.target.value})}
-                  rows={3}
-                />
-              </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Hora</label>
+                    <input
+                      type="time"
+                      value={newAppointment.hora}
+                      onChange={(e) => setNewAppointment({...newAppointment, hora: e.target.value})}
+                      min="08:00"
+                      max="20:00"
+                      required
+                    />
+                    <small style={{ color: '#666', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                      Horario de atención: 8:00 AM - 8:00 PM
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label>Notas (Opcional)</label>
+                    <textarea
+                      value={newAppointment.notas}
+                      onChange={(e) => setNewAppointment({...newAppointment, notas: e.target.value})}
+                      rows={3}
+                      placeholder="Comentarios adicionales, alergias, preferencias..."
+                    />
+                  </div>
+                </div>
 
-              <div className="form-buttons">
-                <button type="button" className="btn-cancel-form" onClick={() => setShowAppointmentForm(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-submit">
-                  Agendar Cita
-                </button>
-              </div>
-            </form>
+                <div className="form-buttons">
+                  <button type="button" className="btn-cancel-form" onClick={handleCloseAppointmentForm}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-submit">
+                    Agendar Cita
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para editar cita */}
+      {showEditForm && editAppointment && (
+        <div className="modal-overlay" onClick={() => setShowEditForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Editar Cita</h3>
+              <button className="close-btn" onClick={() => setShowEditForm(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <form className="appointment-form" onSubmit={e => {
+                e.preventDefault();
+                setCitas(prev => prev.map(cita => cita.id === editAppointment.id ? { ...editAppointment } : cita));
+                setShowEditForm(false);
+              }}>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Cliente</label>
+                    <input
+                      type="text"
+                      value={editAppointment.cliente}
+                      onChange={e => setEditAppointment({ ...editAppointment, cliente: e.target.value })}
+                      placeholder="Nombre completo del cliente"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Teléfono</label>
+                    <input
+                      type="tel"
+                      value={editAppointment.telefono}
+                      onChange={e => setEditAppointment({ ...editAppointment, telefono: e.target.value })}
+                      placeholder="Ej: +52 123 456 7890"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Servicio</label>
+                    <select
+                      value={editAppointment.servicio}
+                      onChange={e => setEditAppointment({ ...editAppointment, servicio: e.target.value })}
+                      required
+                    >
+                      <option value="">Seleccionar servicio</option>
+                      <option value="Masaje Relajante">Masaje Relajante</option>
+                      <option value="Masaje Deportivo">Masaje Deportivo</option>
+                      <option value="Facial">Facial</option>
+                      <option value="Manicure">Manicure</option>
+                      <option value="Pedicure">Pedicure</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Fecha</label>
+                    <input
+                      type="date"
+                      value={editAppointment.fecha}
+                      onChange={e => setEditAppointment({ ...editAppointment, fecha: e.target.value })}
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Hora</label>
+                    <input
+                      type="time"
+                      value={editAppointment.hora}
+                      onChange={e => setEditAppointment({ ...editAppointment, hora: e.target.value })}
+                      min="08:00"
+                      max="20:00"
+                      required
+                    />
+                    <small style={{ color: '#666', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                      Horario de atención: 9:00 AM - 6:00 PM
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label>Notas (Opcional)</label>
+                    <textarea
+                      value={editAppointment.notas || ''}
+                      onChange={e => setEditAppointment({ ...editAppointment, notas: e.target.value })}
+                      rows={3}
+                      placeholder="Comentarios adicionales, alergias, preferencias..."
+                    />
+                  </div>
+                </div>
+                <div className="form-buttons">
+                  <button type="button" className="btn-cancel-form" onClick={() => setShowEditForm(false)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-submit">
+                    Guardar Cambios
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

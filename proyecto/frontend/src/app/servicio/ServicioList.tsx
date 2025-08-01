@@ -1,13 +1,17 @@
 import React from 'react';
 import styles from '../../styles/ServicioList.module.css';
+
+interface Servicio {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  duracion: string;
+  precio: number;
+  imagen: string;
+}
+
 interface ServicioListProps {
-  servicios: {
-    id: number;
-    nombre: string;
-    descripcion: string;
-    precio: number;
-    imagen: string;
-  }[];
+  servicios: Servicio[];
 }
 
 const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
@@ -18,7 +22,9 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
           <img src={servicio.imagen} alt={servicio.nombre} className={styles.servicioImage} />
           <h3 className={styles.servicioNombre}>{servicio.nombre}</h3>
           <p className={styles.servicioDescripcion}>{servicio.descripcion}</p>
+          <p className={styles.servicioDuracion}><b>Duración:</b> {servicio.duracion}</p> {/* <-- Agrega esta línea */}
           <p className={styles.servicioPrecio}>${servicio.precio.toFixed(2)}</p>
+          <button className={styles.reservaBtn}>Reserva ahora</button>
         </div>
       ))}
     </div>
