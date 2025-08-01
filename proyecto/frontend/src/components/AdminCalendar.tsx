@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Navbar from '../app/components/Navbar';
 import { getClientes, type Cliente } from '../servicios/clientesService';
+import { getCitas, crearCita, Servicio } from '../servicios/citasService';
 import '../styles/admin-calendar.css';
 
 interface Cita {
@@ -21,36 +22,30 @@ const AdminCalendar = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
-  const [citas, setCitas] = useState<Cita[]>([
-    {
-      id: 1,
-      cliente: "María González",
-      servicio: "Masaje Relajante",
-      fecha: "2025-07-30",
-      hora: "10:00",
-      estado: "confirmada",
-      telefono: "123-456-7890",
-      notas: "Cliente preferente"
-    },
-    {
-      id: 2,
-      cliente: "Ana López",
-      servicio: "Facial",
-      fecha: "2025-07-30",
-      hora: "14:00",
-      estado: "pendiente",
-      telefono: "098-765-4321"
-    },
-    {
-      id: 3,
-      cliente: "Carlos Ruiz",
-      servicio: "Manicure",
-      fecha: "2025-07-31",
-      hora: "11:00",
-      estado: "confirmada",
-      telefono: "555-123-4567"
+  const [citas, setCitas] = useState<Cita[]>([]);
+  // Cargar citas reales al montar el componente
+  useEffect(() => {
+    async function cargarCitas() {
+      try {
+        const citasData = await getCitas();
+        // Mapear los datos del backend al formato esperado por el frontend
+        const citasMapeadas = citasData.map((cita: any) => ({
+          id: cita.id_cita,
+          cliente: cita.nombre_cliente || cita.cliente || '',
+          servicio: cita.nombre_servicio || cita.servicio || '',
+          fecha: cita.fecha_cita ? cita.fecha_cita.split('T')[0] : '',
+          hora: cita.fecha_cita ? (cita.fecha_cita.split('T')[1] ? cita.fecha_cita.split('T')[1].substring(0,5) : '') : '',
+          estado: cita.estado || 'pendiente',
+          telefono: cita.telefono || '',
+          notas: cita.notas || ''
+        }));
+        setCitas(citasMapeadas);
+      } catch (error) {
+        console.error('Error al cargar citas:', error);
+      }
     }
-  ]);
+    cargarCitas();
+  }, []);
   const [editAppointment, setEditAppointment] = useState<Cita | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
@@ -64,6 +59,7 @@ const AdminCalendar = () => {
 
   const [newAppointment, setNewAppointment] = useState({
     cliente: '',
+    apellidos: '',
     telefono: '',
     email: '',
     servicio: '',
@@ -191,7 +187,8 @@ const AdminCalendar = () => {
       ...newAppointment,
       cliente: `${cliente.nombre_cliente} ${cliente.apellido_cliente}`.trim(),
       telefono: cliente.telefono,
-      email: cliente.correo_electronico
+      email: cliente.correo_electronico,
+      apellidos: cliente.apellido_cliente || '',
     });
     
     console.log('Cerrando modal de clientes...');
@@ -231,31 +228,56 @@ const AdminCalendar = () => {
     }
   };
 
-  const handleSubmitAppointment = (e: React.FormEvent) => {
+  const handleSubmitAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newCita: Cita = {
-      id: citas.length + 1,
-      cliente: newAppointment.cliente,
-      servicio: newAppointment.servicio,
-      fecha: newAppointment.fecha,
-      hora: newAppointment.hora,
-      estado: 'pendiente',
-      telefono: newAppointment.telefono,
-      notas: newAppointment.notas
-    };
-    
-    setCitas([...citas, newCita]);
-    setNewAppointment({
-      cliente: '',
-      telefono: '',
-      email: '',
-      servicio: '',
-      fecha: '',
-      hora: '',
-      notas: ''
-    });
-    setSelectedCliente(null); // Reset selected client
-    setShowAppointmentForm(false);
+    try {
+      // Construir el objeto para el backend
+      // Asegurar que el servicio sea del tipo correcto
+      const servicioValido = ["masaje", "facial", "manicure", ""].includes(newAppointment.servicio)
+        ? newAppointment.servicio as Servicio
+        : "";
+      const apellidosFinal = selectedCliente
+        ? (selectedCliente.apellido_cliente || newAppointment.apellidos || '')
+        : (newAppointment.apellidos || '');
+      const citaForm = {
+        nombre: selectedCliente ? selectedCliente.nombre_cliente : newAppointment.cliente,
+        apellidos: apellidosFinal,
+        email: newAppointment.email,
+        numero: newAppointment.telefono,
+        fecha: newAppointment.fecha,
+        hora: newAppointment.hora,
+        servicio: servicioValido,
+        notas: newAppointment.notas
+      };
+      await crearCita(citaForm);
+      // Recargar citas reales
+      const citasData = await getCitas();
+      const citasMapeadas = citasData.map((cita: any) => ({
+        id: cita.id_cita,
+        cliente: cita.nombre_cliente || cita.cliente || '',
+        servicio: cita.nombre_servicio || cita.servicio || '',
+        fecha: cita.fecha_cita ? cita.fecha_cita.split('T')[0] : '',
+        hora: cita.fecha_cita ? (cita.fecha_cita.split('T')[1] ? cita.fecha_cita.split('T')[1].substring(0,5) : '') : '',
+        estado: cita.estado || 'pendiente',
+        telefono: cita.telefono || '',
+        notas: cita.notas || ''
+      }));
+      setCitas(citasMapeadas);
+      setNewAppointment({
+        cliente: '',
+        apellidos: '',
+        telefono: '',
+        email: '',
+        servicio: '',
+        fecha: '',
+        hora: '',
+        notas: ''
+      });
+      setSelectedCliente(null);
+      setShowAppointmentForm(false);
+    } catch (error: any) {
+      alert(error.message || 'Error al guardar la cita');
+    }
   };
 
   const handleCloseAppointmentForm = () => {
@@ -263,6 +285,7 @@ const AdminCalendar = () => {
     setSelectedCliente(null);
     setNewAppointment({
       cliente: '',
+      apellidos: '',
       telefono: '',
       email: '',
       servicio: '',
@@ -643,16 +666,17 @@ const AdminCalendar = () => {
                             </option>
                           ))}
                         </select>
-                        {/* <input
-                          type="text"
-                          value={newAppointment.cliente}
-                          onChange={(e) => {
-                            setNewAppointment({...newAppointment, cliente: e.target.value});
-                            setSelectedCliente(null);
-                          }}
-                          placeholder="Nombre de nuevo cliente"
-                          required
-                        /> */}
+                        {/* Si el cliente seleccionado no tiene apellidos, mostrar input para capturarlos */}
+                        {selectedCliente && !selectedCliente.apellido_cliente && (
+                          <input
+                            type="text"
+                            value={newAppointment.apellidos || ''}
+                            onChange={e => setNewAppointment({ ...newAppointment, apellidos: e.target.value })}
+                            placeholder="Apellidos del cliente"
+                            required
+                            style={{ marginTop: '0.5rem' }}
+                          />
+                        )}
                       </>
                     ) : (
                       <input
@@ -719,16 +743,41 @@ const AdminCalendar = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label>Hora</label>
-                    <input
-                      type="time"
+                    <select
                       value={newAppointment.hora}
-                      onChange={(e) => setNewAppointment({...newAppointment, hora: e.target.value})}
-                      min="08:00"
-                      max="20:00"
+                      onChange={e => setNewAppointment({ ...newAppointment, hora: e.target.value })}
                       required
-                    />
+                      disabled={!newAppointment.fecha}
+                    >
+                      <option value="">Selecciona una hora</option>
+                      {(() => {
+                        if (!newAppointment.fecha) return null;
+                        // newAppointment.fecha es YYYY-MM-DD, pero new Date() lo interpreta como UTC, puede dar día incorrecto
+                        const [year, month, day] = newAppointment.fecha.split('-').map(Number);
+                        const fecha = new Date(year, month - 1, day);
+                        const dia = fecha.getDay(); // 0=Domingo, 6=Sábado
+                        let horas: string[] = [];
+                        if (dia === 0) {
+                          // Domingo cerrado
+                          return <option value="" disabled>Domingo cerrado</option>;
+                        } else if (dia === 6) {
+                          // Sábado: 10:00 - 14:00
+                          for (let h = 10; h <= 14; h++) {
+                            horas.push(h.toString().padStart(2, '0') + ':00');
+                          }
+                        } else {
+                          // Lunes a Viernes: 9:00 - 18:00
+                          for (let h = 9; h <= 18; h++) {
+                            horas.push(h.toString().padStart(2, '0') + ':00');
+                          }
+                        }
+                        return horas.map(hora => (
+                          <option key={hora} value={hora}>{hora}</option>
+                        ));
+                      })()}
+                    </select>
                     <small style={{ color: '#666', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                      Horario de atención: 8:00 AM - 8:00 PM
+                      Lunes a Viernes: 9:00 - 18:00 | Sábado: 10:00 - 14:00 | Domingo: Cerrado
                     </small>
                   </div>
                   <div className="form-group">
@@ -822,16 +871,40 @@ const AdminCalendar = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label>Hora</label>
-                    <input
-                      type="time"
+                    <select
                       value={editAppointment.hora}
                       onChange={e => setEditAppointment({ ...editAppointment, hora: e.target.value })}
-                      min="08:00"
-                      max="20:00"
                       required
-                    />
+                      disabled={!editAppointment.fecha}
+                    >
+                      <option value="">Selecciona una hora</option>
+                      {(() => {
+                        if (!editAppointment.fecha) return null;
+                        const [year, month, day] = editAppointment.fecha.split('-').map(Number);
+                        const fecha = new Date(year, month - 1, day);
+                        const dia = fecha.getDay(); // 0=Domingo, 6=Sábado
+                        let horas: string[] = [];
+                        if (dia === 0) {
+                          // Domingo cerrado
+                          return <option value="" disabled>Domingo cerrado</option>;
+                        } else if (dia === 6) {
+                          // Sábado: 10:00 - 14:00
+                          for (let h = 10; h <= 14; h++) {
+                            horas.push(h.toString().padStart(2, '0') + ':00');
+                          }
+                        } else {
+                          // Lunes a Viernes: 9:00 - 18:00
+                          for (let h = 9; h <= 18; h++) {
+                            horas.push(h.toString().padStart(2, '0') + ':00');
+                          }
+                        }
+                        return horas.map(hora => (
+                          <option key={hora} value={hora}>{hora}</option>
+                        ));
+                      })()}
+                    </select>
                     <small style={{ color: '#666', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                      Horario de atención: 9:00 AM - 6:00 PM
+                      Lunes a Viernes: 9:00 - 18:00 | Sábado: 10:00 - 14:00 | Domingo: Cerrado
                     </small>
                   </div>
                   <div className="form-group">

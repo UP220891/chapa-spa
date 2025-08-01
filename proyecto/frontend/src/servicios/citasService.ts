@@ -1,3 +1,19 @@
+// Obtener todas las citas del backend
+export async function getCitas(): Promise<any[]> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  try {
+    const res = await axios.get(`${API_URL}/api/citas`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
+    });
+    return res.data;
+  } catch (err: any) {
+    const mensaje = err?.response?.data?.mensaje || err?.response?.data?.error || err?.message || "Error al obtener citas";
+    throw new Error(mensaje);
+  }
+}
 // Servicio para conectar el frontend con el backend para citas
 import axios from "axios";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -5,7 +21,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export type Servicio = "" | "masaje" | "facial" | "manicure";
 export interface CitaForm {
   nombre: string;
-  apellidos: string;
   email: string;
   numero: string;
   fecha: string;
@@ -17,7 +32,6 @@ export interface CitaForm {
 export async function crearCita(form: CitaForm): Promise<any> {
   // Validación frontend antes de enviar al backend
   if (!form.nombre) throw new Error("El nombre es obligatorio");
-  if (!form.apellidos) throw new Error("Los apellidos son obligatorios");
   if (!form.email || !/^[^@]+@[^@]+\.[^@]+$/.test(form.email)) throw new Error("El correo no es válido");
   if (!form.numero) throw new Error("El número es obligatorio");
   if (!form.fecha) throw new Error("La fecha es obligatoria");

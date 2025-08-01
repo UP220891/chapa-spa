@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import CitasForm from "@/components/CitasForm";
 import Navbar from "../components/Navbar";

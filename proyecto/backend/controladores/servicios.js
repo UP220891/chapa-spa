@@ -27,7 +27,7 @@ async function crearServicio(req, res) {
     await Servicios.createServicio(req.body);
     res.status(201).json({ mensaje: 'Servicio creado correctamente' });
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear servicio' });
+    res.status(500).json({ error: 'Error al crear servicio', detalle: error.message });
   }
 }
 

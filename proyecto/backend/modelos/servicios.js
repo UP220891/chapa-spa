@@ -33,7 +33,8 @@ async function createServicio(data) {
       .input('descripcion', sql.Text, data.descripcion || null)
       .input('duracion', sql.Int, data.duracion)
       .input('precio', sql.Decimal(8,2), data.precio)
-      .query('INSERT INTO C_Servicios (nombre_servicio, descripcion, duracion, precio) VALUES (@nombre_servicio, @descripcion, @duracion, @precio)');
+      .input('imagen', sql.Text, data.imagen || null)
+      .query('INSERT INTO C_Servicios (nombre_servicio, descripcion, duracion, precio, imagen) VALUES (@nombre_servicio, @descripcion, @duracion, @precio, @imagen)');
     return result;
   } catch (err) {
     throw err;
