@@ -26,10 +26,13 @@ const AdminCalendar = () => {
   const [horarios, setHorarios] = useState<{ id_horario: number; hora_inicio: string; hora_fin: string; dia: string }[]>([]);
   // Si no tienes el servicio, inicializa horarios vacío
   // Cargar horarios reales al montar el componente
+  // Cargar horarios reales al montar el componente
   useEffect(() => {
     async function cargarHorarios() {
       try {
-        // const horariosData = await getHorarios(); // Eliminado porque no existe la función
+        // Importar la función real del servicio
+        const { obtenerHorarios } = await import('../servicios/horariosService');
+        const horariosData = await obtenerHorarios();
         setHorarios(horariosData);
       } catch (error) {
         setHorarios([]);
@@ -75,11 +78,29 @@ function formatFecha(fecha: string) {
     async function cargarCitas() {
       try {
         const citasData = await getCitas();
-        const citasMapeadas = citasData.map(mapearCita);
+        // Si la respuesta es un error del backend, mostrar mensaje y no intentar mapear
+        if (!Array.isArray(citasData)) {
+          setCitas([]);
+          setErrorCitas('No se pudieron cargar las citas (error de backend)');
+          return;
+        }
+        // Filtrar citas con fechas válidas
+        const citasValidas = citasData.filter(c => {
+          const fecha = c.fecha_cita || c.fecha;
+          if (!fecha) return false;
+          const d = new Date(fecha);
+          return !isNaN(d.getTime());
+        });
+        const citasMapeadas = citasValidas.map(mapearCita);
         setCitas(citasMapeadas);
         setErrorCitas(null);
+        // Si todas las citas fueron filtradas, mostrar advertencia
+        if (citasData.length > 0 && citasMapeadas.length === 0) {
+          setErrorCitas('Todas las citas tienen formato de fecha inválido.');
+        }
       } catch (error: any) {
         console.error('Error al cargar citas:', error);
+        setCitas([]);
         setErrorCitas(error.message || 'Error al cargar citas');
       }
     }
@@ -397,70 +418,72 @@ function formatFecha(fecha: string) {
       <Navbar />
       <div className="admin-calendar-container">
         <div className="admin-header">
-          {errorCitas && (
-            <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '6px', marginBottom: '12px', fontWeight: 'bold', textAlign: 'center' }}>
-              Error al cargar citas: {errorCitas}
+          {errorCitas ? (
+            <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '24px', borderRadius: '10px', margin: '32px auto', fontWeight: 'bold', textAlign: 'center', fontSize: '1.3rem', maxWidth: '600px' }}>
+              <span style={{ fontSize: '2rem', display: 'block', marginBottom: '12px' }}>⚠️</span>
+              Error al cargar citas: {errorCitas}<br />
+              Por favor intenta más tarde o contacta al soporte.
             </div>
-          )}
-          <h1>Panel de Administración - Calendario de Citas</h1>
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-            <button 
-              className="btn-new-appointment" 
-              onClick={handleNewAppointmentWithClients}
-              disabled={loadingClientes}
-              style={{ background: '#4f46e5', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }}
-            >
-              {loadingClientes ? 'Cargando...' : '+ Nueva Cita'}
-            </button>
-            <button className="btn-new-employee" style={{ background: '#357a6c', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }} onClick={() => setShowEmployeeForm(true)}>
-              + Nuevo Empleado
-            </button>
-            <button className="btn-new-client" style={{ background: '#204d47', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }} onClick={() => setShowClientForm(true)}>
-              + Nuevo Cliente
-            </button>
-          </div>
-        </div>
-
-      <div className="calendar-wrapper">
-        <div className="calendar-header">
-          <button className="nav-btn" onClick={() => navigateMonth('prev')}>
-            &#8249;
-          </button>
-          <h2>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h2>
-          <button className="nav-btn" onClick={() => navigateMonth('next')}>
-            &#8250;
-          </button>
-        </div>
-
-        <div className="calendar-grid">
-          <div className="calendar-days-header">
-            {dayNames.map(day => (
-              <div key={day} className="day-header">{day}</div>
-            ))}
-          </div>
-
-          <div className="calendar-days">
-            {days.map((day: { date: Date; isCurrentMonth: boolean }, index: number) => {
-              const citasForDay = getCitasForDate(day.date);
-              const isToday = day.date.toDateString() === new Date().toDateString();
-              return (
-                <div
-                  key={index}
-                  className={`calendar-day ${!day.isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`}
-                  onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
+          ) : (
+            <>
+              <h1>Panel de Administración - Calendario de Citas</h1>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                <button 
+                  className="btn-new-appointment" 
+                  onClick={handleNewAppointmentWithClients}
+                  disabled={loadingClientes}
+                  style={{ background: '#4f46e5', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }}
                 >
-                  <span className="day-number">{day.date.getDate()}</span>
-                  {citasForDay.length > 0 && (
-                    <div className="appointments-indicator">
-                      <span className="appointments-count">{citasForDay.length}</span>
-                    </div>
-                  )}
+                  {loadingClientes ? 'Cargando...' : '+ Nueva Cita'}
+                </button>
+                <button className="btn-new-employee" style={{ background: '#357a6c', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }} onClick={() => setShowEmployeeForm(true)}>
+                  + Nuevo Empleado
+                </button>
+                <button className="btn-new-client" style={{ background: '#204d47', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none' }} onClick={() => setShowClientForm(true)}>
+                  + Nuevo Cliente
+                </button>
+              </div>
+              <div className="calendar-wrapper">
+                <div className="calendar-header">
+                  <button className="nav-btn" onClick={() => navigateMonth('prev')}>
+                    &#8249;
+                  </button>
+                  <h2>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h2>
+                  <button className="nav-btn" onClick={() => navigateMonth('next')}>
+                    &#8250;
+                  </button>
                 </div>
-              );
-            })}
-          </div>
+                <div className="calendar-grid">
+                  <div className="calendar-days-header">
+                    {dayNames.map(day => (
+                      <div key={day} className="day-header">{day}</div>
+                    ))}
+                  </div>
+                  <div className="calendar-days">
+                    {days.map((day: { date: Date; isCurrentMonth: boolean }, index: number) => {
+                      const citasForDay = getCitasForDate(day.date);
+                      const isToday = day.date.toDateString() === new Date().toDateString();
+                      return (
+                        <div
+                          key={index}
+                          className={`calendar-day ${!day.isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`}
+                          onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
+                        >
+                          <span className="day-number">{day.date.getDate()}</span>
+                          {citasForDay.length > 0 && (
+                            <div className="appointments-indicator">
+                              <span className="appointments-count">{citasForDay.length}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      </div>
 
       {/* Modal para ver citas del día */}
       {showModal && selectedDate && (
@@ -471,7 +494,9 @@ function formatFecha(fecha: string) {
               <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
             </div>
             <div className="modal-body">
-              {getCitasForDate(selectedDate).length === 0 ? (
+              {errorCitas ? (
+                <p style={{ color: '#b91c1c', fontWeight: 'bold' }}>{errorCitas}</p>
+              ) : getCitasForDate(selectedDate).length === 0 ? (
                 <p>No hay citas programadas para este día.</p>
               ) : (
                 <div className="appointments-list">

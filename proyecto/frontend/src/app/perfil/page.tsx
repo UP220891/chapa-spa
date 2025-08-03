@@ -237,6 +237,15 @@ const Perfil = () => {
         const especialidadObj = especialidades.find(e => String(e.id_especialidad) === String(especialidad === "__nueva__" ? id_especialidad_final : especialidad));
         // Guardar los ids y los nombres de los horarios seleccionados
         const horariosObj = horarios.filter(h => horariosSeleccionados.includes(String(h.id_horario)));
+        // Agrupar los horarios seleccionados por día y guardar solo el bloque más amplio por día
+        const horariosAgrupados = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(dia => {
+          const horariosDia = horariosObj.filter((h: any) => h.dia === dia && h.hora_inicio && h.hora_fin && h.hora_inicio !== '00:00' && h.hora_fin !== '00:00');
+          if (horariosDia.length === 0) return null;
+          const minInicio = horariosDia.reduce((min: string, h: any) => h.hora_inicio < min ? h.hora_inicio : min, horariosDia[0].hora_inicio);
+          const maxFin = horariosDia.reduce((max: string, h: any) => h.hora_fin > max ? h.hora_fin : max, horariosDia[0].hora_fin);
+          // Usar el id_horario del primer bloque del día (para mantener compatibilidad con el select y visualización)
+          return { id_horario: horariosDia[0].id_horario, dia, hora_inicio: minInicio, hora_fin: maxFin };
+        }).filter(Boolean);
         const usuarioActualizado = {
           ...usuario,
           nombre_cliente: esEmpleado ? undefined : nombre,
@@ -244,7 +253,7 @@ const Perfil = () => {
           id_especialidad: esEmpleado ? Number(especialidad === "__nueva__" ? id_especialidad_final : especialidad) : undefined,
           id_horarios: esEmpleado ? horariosSeleccionados.map(Number) : undefined,
           especialidad: esEmpleado && especialidadObj ? especialidadObj.nombre_especialidad : undefined,
-          horarios: esEmpleado && horariosObj.length > 0 ? horariosObj : undefined,
+          horarios: esEmpleado && horariosAgrupados.length > 0 ? horariosAgrupados : undefined,
           telefono: esEmpleado ? undefined : telefono,
           correo_electronico: esEmpleado ? undefined : email,
           email: esEmpleado ? undefined : email,
@@ -255,6 +264,8 @@ const Perfil = () => {
         setEditando(false);
         setOpenSnackbar(true);
         setNuevaEspecialidad("");
+        // Forzar recarga para reflejar los horarios agrupados
+        setTimeout(() => { window.location.reload(); }, 500);
       } else {
         setError(data.mensaje || "Error al guardar cambios");
       }
@@ -385,21 +396,17 @@ const Perfil = () => {
                         style={{ width: '100%', padding: '12px', borderRadius: 6, border: '1px solid #204d47', fontFamily: 'Montserrat, sans-serif', fontWeight: 500, color: '#204d47', fontSize: '1rem', minHeight: 120 }}
                         required
                       >
-                        {/* Agrupar por día y mostrar solo bloques realistas */}
+                        {/* Mostrar solo bloques por día, agrupando horarios */}
                         {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(dia => {
-                          const h = horarios.find((h: any) => h.dia === dia);
-                          if (!h) return null;
-                          // Si es domingo cerrado
-                          if (h.cerrado || (!h.hora_inicio && !h.hora_fin)) {
-                            return (
-                              <option key={h.id_horario} value={h.id_horario} disabled>
-                                {`${h.dia}: Cerrado`}
-                              </option>
-                            );
-                          }
+                          const horariosDia = horarios.filter((h: any) => h.dia === dia && h.hora_inicio && h.hora_fin && h.hora_inicio !== '00:00' && h.hora_fin !== '00:00');
+                          if (horariosDia.length === 0) return null;
+                          // Tomar el bloque más amplio por día
+                          const minInicio = horariosDia.reduce((min, h) => h.hora_inicio < min ? h.hora_inicio : min, horariosDia[0].hora_inicio);
+                          const maxFin = horariosDia.reduce((max, h) => h.hora_fin > max ? h.hora_fin : max, horariosDia[0].hora_fin);
+                          const bloque = { id_horario: horariosDia[0].id_horario, dia, hora_inicio: minInicio, hora_fin: maxFin };
                           return (
-                            <option key={h.id_horario} value={h.id_horario}>
-                              {formatHorario(h)}
+                            <option key={bloque.dia} value={bloque.id_horario}>
+                              {`${bloque.dia}: ${formatHorario(bloque)}`}
                             </option>
                           );
                         })}
@@ -491,9 +498,10 @@ const Perfil = () => {
                         <Box sx={{ flex: 1 }}>
                           <Typography sx={{ color: "#204d47", fontWeight: 700, fontSize: "1.35rem", fontFamily: "Montserrat, sans-serif", mb: 1 }}>Horarios</Typography>
                           {Array.isArray(usuario.horarios) && usuario.horarios.length > 0 ? (
-                            usuario.horarios.map((h: any) => (
-                              <Typography key={h.id_horario} sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.13rem", fontFamily: "Montserrat, sans-serif" }}>
-                                {formatHorario(h)}
+                            // Mostrar los bloques agrupados tal como están en usuario.horarios
+                            usuario.horarios.map((bloque: any, idx: number) => (
+                              <Typography key={bloque.dia + idx} sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.13rem", fontFamily: "Montserrat, sans-serif" }}>
+                                {formatHorario(bloque)}
                               </Typography>
                             ))
                           ) : Array.isArray(usuario.id_horarios) && usuario.id_horarios.length > 0 ? (

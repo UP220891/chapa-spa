@@ -8,7 +8,7 @@ async function getCitas() {
       SELECT 
         c.id_cita,
         c.fecha_cita,
-        LEFT(CONVERT(varchar, c.fecha_cita, 108), 5) AS hora,
+        FORMAT(c.fecha_cita, 'HH:mm') AS hora,
         c.notas,
         c.costo_total,
         c.id_estado_cita,

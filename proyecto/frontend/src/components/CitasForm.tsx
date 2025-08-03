@@ -126,7 +126,7 @@ const CitasForm: React.FC = () => {
     let h = parseInt(inicio.slice(0,2));
     let m = parseInt(inicio.slice(3,5));
     const hFin = parseInt(fin.slice(0,2));
-    while (h < hFin) {
+    while (h <= hFin) {
       const horaStr = `${h.toString().padStart(2,'0')}:00`;
       horas.push(horaStr);
       h++;
@@ -188,17 +188,18 @@ const CitasForm: React.FC = () => {
   const [error, setError] = React.useState<string>("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    // Si el campo es hora, asigna el id_horario del horario del día seleccionado
+    // Si el campo es hora, buscar el id_horario que corresponde a la hora seleccionada y el día
     if (e.target.id === "hora") {
       let idHorario = "";
-      if (form.fecha) {
+      if (form.fecha && e.target.value) {
         const [year, month, day] = form.fecha.split('-').map(Number);
         const fecha = new Date(year, month - 1, day);
         const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
         const diaActual = diasSemana[fecha.getDay()];
-        const horarioDia = horarios.find(h => h.dia === diaActual);
-        if (horarioDia) {
-          idHorario = String(horarioDia.id_horario);
+        // Buscar el horario exacto por día y hora
+        const horarioExacto = horarios.find(h => h.dia === diaActual && (h.hora_inicio?.slice(0,5) === e.target.value || (h.hora_inicio?.match(/T(\d{2}:\d{2})/)?.[1] === e.target.value)));
+        if (horarioExacto) {
+          idHorario = String(horarioExacto.id_horario);
         }
       }
       setForm({
@@ -248,7 +249,11 @@ const CitasForm: React.FC = () => {
       // Adaptar fecha y hora
       const fecha = form.fecha;
       const id_horario = form.id_horario ? Number(form.id_horario) : null;
-      const hora = form.hora;
+      // Validar que la hora seleccionada sea válida y no vacía ni '00:00'
+      let hora = form.hora;
+      if (!hora || hora === '00:00') {
+        throw new Error('Debes seleccionar una hora válida para la cita');
+      }
 
       // Opcionales
       const notas = form.notas || "";

@@ -4,11 +4,10 @@ const Citas = require('../modelos/citas');
 async function listarCitas(req, res) {
   try {
     const citas = await Citas.getCitas();
-      console.log('Error en GET /api/citas:', error);
-      res.json(citas);
+    res.json(citas);
   } catch (error) {
-      console.error('Error en GET /api/citas:', error);
-      res.status(500).json({ error: 'Error al obtener citas' });
+    console.error('Error en GET /api/citas:', error);
+    res.status(500).json({ error: 'Error al obtener citas' });
   }
 }
 

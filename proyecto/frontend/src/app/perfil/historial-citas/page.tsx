@@ -7,14 +7,15 @@
     Miércoles: { inicio: '09:00', fin: '18:00' },
     Jueves: { inicio: '09:00', fin: '18:00' },
     Viernes: { inicio: '09:00', fin: '18:00' },
-    Sábado: { inicio: '10:00', fin: '14:00' }
+    Sábado: { inicio: '10:00', fin: '14:00' },
+    Domingo: null
   };
   const generarHoras = (inicio: string, fin: string) => {
     const horas: string[] = [];
     let h = parseInt(inicio.slice(0,2));
     let m = parseInt(inicio.slice(3,5));
     const hFin = parseInt(fin.slice(0,2));
-    while (h < hFin) {
+    while (h <= hFin) {
       const horaStr = `${h.toString().padStart(2,'0')}:00`;
       horas.push(horaStr);
       h++;
@@ -112,11 +113,23 @@ const HistorialCitas = () => {
         id_horario: nuevoIdHorario
       };
       await editarCita(id_cita, payload);
-      setCitas(prev => prev.map(c =>
-        c.id_cita === id_cita
-          ? { ...c, fecha_cita: `${payload.fecha}T${payload.hora}:00`, notas: payload.notas, id_horario: nuevoIdHorario }
-          : c
-      ));
+      setCitas(prev => prev.map(c => {
+        if (c.id_cita === id_cita) {
+          // Si el backend regresa 'hora' como campo separado, actualiza ambos
+          let nuevaFechaCita = payload.fecha;
+          if (payload.hora) {
+            nuevaFechaCita += `T${payload.hora}:00`;
+          }
+          return {
+            ...c,
+            fecha_cita: nuevaFechaCita,
+            hora: payload.hora,
+            notas: payload.notas,
+            id_horario: nuevoIdHorario
+          };
+        }
+        return c;
+      }));
       setEditandoId(null);
     } catch (err: any) {
       setError(err.message || "Error al editar cita");
@@ -147,31 +160,39 @@ const HistorialCitas = () => {
   }, []);
   // Función robusta para mostrar la hora real de la cita usando horarios del backend
   function getHoraCita(cita: any) {
+    // Prioridad: mostrar la hora que el usuario seleccionó al reservar y nunca mostrar 00:00
+    if (cita.hora && cita.hora !== '00:00') return cita.hora;
+    // Si el backend regresa la hora en el campo fecha_cita tipo 'YYYY-MM-DDTHH:mm:00'
+    if (cita.fecha_cita && cita.fecha_cita.includes('T')) {
+      const partes = cita.fecha_cita.split('T');
+      if (partes[1]) {
+        const hora = partes[1].slice(0,5);
+        if (hora !== '00:00') return hora;
+      }
+    }
+    // Si hay id_horario y horarios cargados, buscar la hora exacta
     if (cita.id_horario && horarios.length > 0) {
       const horario = horarios.find((h: any) => h.id_horario === cita.id_horario);
       if (horario && horario.hora_inicio) {
-        // Si viene como '1970-01-01T10:00:00.000Z' o similar, extraer solo HH:mm
         const match = horario.hora_inicio.match(/T(\d{2}:\d{2})/);
-        if (match) return match[1];
-        // Si viene como '10:00:00' o '10:00', tomar los primeros 5 caracteres
-        return horario.hora_inicio.slice(0,5);
+        if (match && match[1] !== '00:00') return match[1];
+        const hora = horario.hora_inicio.slice(0,5);
+        if (hora !== '00:00') return hora;
       }
-      return `Horario #${cita.id_horario}`;
     }
-    if (cita.hora) return cita.hora;
-    if (cita.hora_inicio) return cita.hora_inicio;
-    if (cita.hora_fin) return cita.hora_fin;
-    const fecha_cita = cita.fecha_cita;
-    if (!fecha_cita) return '';
-    if (fecha_cita.includes('T')) {
-      const partes = fecha_cita.split('T');
-      if (partes[1]) return partes[1].slice(0,5);
+    // Si la fecha viene como 'YYYY-MM-DD HH:mm:ss'
+    if (cita.fecha_cita && cita.fecha_cita.includes(' ')) {
+      const partes = cita.fecha_cita.split(' ');
+      if (partes[1]) {
+        const hora = partes[1].slice(0,5);
+        if (hora !== '00:00') return hora;
+      }
     }
-    if (fecha_cita.includes(' ')) {
-      const partes = fecha_cita.split(' ');
-      if (partes[1]) return partes[1].slice(0,5);
+    // Si la fecha tiene suficiente longitud, extraer la hora
+    if (cita.fecha_cita && cita.fecha_cita.length >= 16) {
+      const hora = cita.fecha_cita.slice(11,16);
+      if (hora !== '00:00') return hora;
     }
-    if (fecha_cita.length >= 16) return fecha_cita.slice(11,16);
     return '';
   }
 
@@ -284,18 +305,40 @@ const HistorialCitas = () => {
                               const [year, month, day] = editForm.fecha.split('-').map(Number);
                               const date = new Date(year, month - 1, day);
                               const diaSemana = diasSemana[date.getDay()];
-                              // Filtrar horarios solo por el campo 'dia' del backend
-                              const horariosFiltrados = horarios.filter((h: any) => h.dia === diaSemana);
-                              // Extraer horas válidas y eliminar duplicados y horas inválidas
-                              const horasUnicas = Array.from(new Set(
-                                horariosFiltrados
-                                  .map((h: any) => {
-                                    const match = h.hora_inicio.match(/T(\d{2}:\d{2})/);
-                                    const horaStr = match ? match[1] : h.hora_inicio.slice(0,5);
-                                    return horaStr !== "00:00" ? horaStr : null;
-                                  })
-                                  .filter(Boolean)
-                              ));
+                              // Usar horariosSpa si no hay horarios del backend
+                              let horasUnicas: string[] = [];
+                              if (horarios.length === 0) {
+                                const horario = horariosSpa[diaSemana as keyof typeof horariosSpa];
+                                if (horario) {
+                                  // Generar horas incluyendo la final
+                                  let h = parseInt(horario.inicio.slice(0,2));
+                                  const hFin = parseInt(horario.fin.slice(0,2));
+                                  while (h <= hFin) {
+                                    horasUnicas.push(`${h.toString().padStart(2,'0')}:00`);
+                                    h++;
+                                  }
+                                }
+                              } else {
+                                // Filtrar horarios solo por el campo 'dia' del backend
+                                const horariosFiltrados = horarios.filter((h: any) => h.dia === diaSemana);
+                                horasUnicas = Array.from(new Set(
+                                  horariosFiltrados
+                                    .map((h: any) => {
+                                      const match = h.hora_inicio.match(/T(\d{2}:\d{2})/);
+                                      const horaStr = match ? match[1] : h.hora_inicio.slice(0,5);
+                                      return horaStr !== "00:00" ? horaStr : null;
+                                    })
+                                    .filter(Boolean)
+                                ));
+                                // Si la hora final no está incluida y el día es válido, agregarla
+                                const horario = horariosSpa[diaSemana as keyof typeof horariosSpa];
+                                if (horario) {
+                                  const horaFin = horario.fin;
+                                  if (!horasUnicas.includes(horaFin)) {
+                                    horasUnicas.push(horaFin);
+                                  }
+                                }
+                              }
                               return horasUnicas.map(horaStr => (
                                 <option key={horaStr} value={horaStr}>{horaStr}</option>
                               ));
@@ -351,7 +394,20 @@ const HistorialCitas = () => {
                           Servicio: {cita.servicio_nombre ? cita.servicio_nombre : (cita.servicio ? cita.servicio : (cita.nombre_servicio ? cita.nombre_servicio : `ID ${cita.id_servicio}`))}
                         </Typography>
                         <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.08rem", mb: 1 }}>
-                          Fecha: {cita.fecha_cita?.split("T")[0] || cita.fecha_cita?.split(" ")[0]} {getHoraCita(cita)}
+                          Fecha: {(() => {
+                            // Mostrar la fecha que el usuario seleccionó
+                            if (cita.fecha_cita) {
+                              if (cita.fecha_cita.includes('T')) {
+                                return cita.fecha_cita.split('T')[0];
+                              }
+                              if (cita.fecha_cita.includes(' ')) {
+                                return cita.fecha_cita.split(' ')[0];
+                              }
+                              // Si la fecha viene como 'YYYY-MM-DD', mostrar tal cual
+                              if (cita.fecha_cita.length >= 10) return cita.fecha_cita.slice(0,10);
+                            }
+                            return '';
+                          })()} {getHoraCita(cita)}
                         </Typography>
                         <Typography sx={{ color: "#357a6c", fontWeight: 500, fontSize: "1.08rem", mb: 1 }}>
                           Estado: {cita.estado_nombre || cita.id_estado_cita}
