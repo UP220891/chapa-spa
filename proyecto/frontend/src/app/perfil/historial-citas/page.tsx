@@ -89,10 +89,30 @@ const HistorialCitas = () => {
       // Usar los valores editados o los originales si no se editaron
       let nuevaHora = editForm.hora || citaActual.fecha_cita?.split("T")[1]?.slice(0,5);
       let nuevoIdHorario = citaActual.id_horario;
+      // Si la hora es inválida, intentar extraerla de las notas
+      if (!nuevaHora || nuevaHora === 'null' || nuevaHora === '' || nuevaHora === '00:00') {
+        if (citaActual.notas) {
+          const match = citaActual.notas.match(/(\d{1,2}:\d{2})/);
+          if (match && match[1]) {
+            nuevaHora = match[1];
+          }
+        }
+      }
       // Si la cita usa horarios del backend y hay horarios cargados, buscar el id_horario correspondiente a la hora seleccionada
+      if ((!nuevaHora || nuevaHora === 'null' || nuevaHora === '' || nuevaHora === '00:00') && horarios.length > 0 && nuevoIdHorario) {
+        // Si no hay hora, reconstruir desde el horario
+        const horario = horarios.find((h: any) => h.id_horario === nuevoIdHorario);
+        if (horario && horario.hora_inicio) {
+          const match = horario.hora_inicio.match(/T(\d{2}:\d{2})/);
+          nuevaHora = match ? match[1] : horario.hora_inicio.slice(0,5);
+        }
+      }
+      if (!nuevaHora || nuevaHora === 'null' || nuevaHora === '' || nuevaHora === '00:00') {
+        alert('Selecciona una hora válida.');
+        return;
+      }
       if (horarios.length > 0 && nuevaHora) {
         const horarioEncontrado = horarios.find((h: any) => {
-          // Si la hora viene como '1970-01-01T10:00:00.000Z', extraer HH:mm
           const match = h.hora_inicio.match(/T(\d{2}:\d{2})/);
           const horaStr = match ? match[1] : h.hora_inicio.slice(0,5);
           return horaStr === nuevaHora;
@@ -115,7 +135,6 @@ const HistorialCitas = () => {
       await editarCita(id_cita, payload);
       setCitas(prev => prev.map(c => {
         if (c.id_cita === id_cita) {
-          // Si el backend regresa 'hora' como campo separado, actualiza ambos
           let nuevaFechaCita = payload.fecha;
           if (payload.hora) {
             nuevaFechaCita += `T${payload.hora}:00`;
@@ -160,9 +179,14 @@ const HistorialCitas = () => {
   }, []);
   // Función robusta para mostrar la hora real de la cita usando horarios del backend
   function getHoraCita(cita: any) {
-    // Prioridad: mostrar la hora que el usuario seleccionó al reservar y nunca mostrar 00:00
-    if (cita.hora && cita.hora !== '00:00') return cita.hora;
-    // Si el backend regresa la hora en el campo fecha_cita tipo 'YYYY-MM-DDTHH:mm:00'
+    // Log de depuración para ver los datos de la cita
+    console.log('Cita:', cita);
+    // 1. Prioridad: mostrar la hora que el usuario seleccionó al reservar y nunca mostrar '00:00'
+    if (cita.hora && cita.hora !== '00:00' && cita.hora !== '00:00:00') {
+      if (/^\d{2}:\d{2}:\d{2}$/.test(cita.hora)) return cita.hora.slice(0,5);
+      if (/^\d{2}:\d{2}$/.test(cita.hora)) return cita.hora;
+    }
+    // 2. Si el backend regresa la hora en el campo fecha_cita tipo 'YYYY-MM-DDTHH:mm:00'
     if (cita.fecha_cita && cita.fecha_cita.includes('T')) {
       const partes = cita.fecha_cita.split('T');
       if (partes[1]) {
@@ -170,17 +194,22 @@ const HistorialCitas = () => {
         if (hora !== '00:00') return hora;
       }
     }
-    // Si hay id_horario y horarios cargados, buscar la hora exacta
+    // 3. Si hay id_horario y horarios cargados, buscar la hora exacta
     if (cita.id_horario && horarios.length > 0) {
       const horario = horarios.find((h: any) => h.id_horario === cita.id_horario);
       if (horario && horario.hora_inicio) {
         const match = horario.hora_inicio.match(/T(\d{2}:\d{2})/);
         if (match && match[1] !== '00:00') return match[1];
-        const hora = horario.hora_inicio.slice(0,5);
-        if (hora !== '00:00') return hora;
+        if (/^\d{2}:\d{2}:\d{2}$/.test(horario.hora_inicio)) {
+          const hora = horario.hora_inicio.slice(0,5);
+          if (hora !== '00:00') return hora;
+        }
+        if (/^\d{2}:\d{2}$/.test(horario.hora_inicio) && horario.hora_inicio !== '00:00') {
+          return horario.hora_inicio;
+        }
       }
     }
-    // Si la fecha viene como 'YYYY-MM-DD HH:mm:ss'
+    // 4. Si la fecha viene como 'YYYY-MM-DD HH:mm:ss'
     if (cita.fecha_cita && cita.fecha_cita.includes(' ')) {
       const partes = cita.fecha_cita.split(' ');
       if (partes[1]) {
@@ -188,12 +217,21 @@ const HistorialCitas = () => {
         if (hora !== '00:00') return hora;
       }
     }
-    // Si la fecha tiene suficiente longitud, extraer la hora
+    // 5. Si la fecha tiene suficiente longitud, extraer la hora
     if (cita.fecha_cita && cita.fecha_cita.length >= 16) {
       const hora = cita.fecha_cita.slice(11,16);
       if (hora !== '00:00') return hora;
     }
-    return '';
+    // 6. Si no hay hora válida, intentar extraer de las notas
+    if (cita.notas) {
+      // Buscar patrón HH:mm en las notas
+      const match = cita.notas.match(/(\d{1,2}:\d{2})/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    // Si no hay hora válida, mostrar 'No asignada'
+    return 'No asignada';
   }
 
   const fetchCitas = async (id_cliente: number, token: string) => {

@@ -12,6 +12,7 @@ async function getCitas() {
         c.notas,
         c.costo_total,
         c.id_estado_cita,
+        c.id_horario,
         cli.nombre_cliente,
         cli.apellido_cliente,
         cli.telefono,
