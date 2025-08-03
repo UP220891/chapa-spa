@@ -80,16 +80,18 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
             <p className={styles.servicioDescripcion}>{descripcion}</p>
             <p className={styles.servicioDuracion}><b>Duración:</b> {duracion}</p>
             <p className={styles.servicioPrecio}>${Number(precio).toFixed(2)}</p>
-            <button
-              className={styles.reservaBtn}
-              onClick={() => {
-                // Usar el nombre del servicio para autocompletar
-                const nombreServicio = (nombre ?? '').toLowerCase();
-                window.location.href = `/citas?servicio=${encodeURIComponent(nombreServicio)}`;
-              }}
-            >
-              Reserva ahora
-            </button>
+            {(usuario && usuario.rol === 'cliente') && (
+              <button
+                className={styles.reservaBtn}
+                onClick={() => {
+                  // Usar el nombre del servicio para autocompletar
+                  const nombreServicio = (nombre ?? '').toLowerCase();
+                  window.location.href = `/citas?servicio=${encodeURIComponent(nombreServicio)}`;
+                }}
+              >
+                Reserva ahora
+              </button>
+            )}
             {(usuario && (usuario.rol === 'admin' || usuario.rol === 'empleado') && id !== undefined) && (
               <div style={{marginTop:'1rem',display:'flex',gap:'0.5rem',justifyContent:'center'}}>
                 <button style={{background:'#f5a623',color:'#fff',border:'none',borderRadius:6,padding:'6px 14px',fontWeight:600,cursor:'pointer'}} onClick={() => handleEditar(servicio)}>Editar</button>
