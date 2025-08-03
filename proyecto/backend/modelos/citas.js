@@ -4,7 +4,23 @@ const { sql, poolPromise } = require('../config/database');
 async function getCitas() {
   try {
     const pool = await poolPromise;
-    let result = await pool.request().query('SELECT * FROM T_Citas');
+    let result = await pool.request().query(`
+      SELECT 
+        c.id_cita,
+        c.fecha_cita,
+        LEFT(CONVERT(varchar, c.fecha_cita, 108), 5) AS hora,
+        c.notas,
+        c.costo_total,
+        c.id_estado_cita,
+        cli.nombre_cliente,
+        cli.apellido_cliente,
+        cli.telefono,
+        s.nombre_servicio,
+        s.precio AS costo_servicio
+      FROM T_Citas c
+      JOIN T_Clientes cli ON c.id_cliente = cli.id_cliente
+      JOIN C_Servicios s ON c.id_servicio = s.id_servicio
+    `);
     return result.recordset;
   } catch (err) {
     throw err;
@@ -28,11 +44,13 @@ async function getCitaById(id_cita) {
 async function createCita(data) {
   try {
     const pool = await poolPromise;
+    // Combinar fecha y hora en formato DATETIME
+    const fechaHora = `${data.fecha}T${data.hora}:00`;
     let result = await pool.request()
       .input('id_cliente', sql.Int, data.id_cliente)
       .input('id_servicio', sql.Int, data.id_servicio)
       .input('id_empleado', sql.Int, data.id_empleado)
-      .input('fecha_cita', sql.Date, data.fecha_cita)
+      .input('fecha_cita', sql.DateTime, fechaHora)
       .input('notas', sql.Text, data.notas || null)
       .input('costo_total', sql.Decimal(8,2), data.costo_total)
       .input('id_estado_cita', sql.Int, data.id_estado_cita || null)
@@ -48,12 +66,14 @@ async function createCita(data) {
 async function updateCita(id_cita, data) {
   try {
     const pool = await poolPromise;
+    // Combinar fecha y hora en formato DATETIME
+    const fechaHora = data.fecha && data.hora ? `${data.fecha}T${data.hora}:00` : null;
     let result = await pool.request()
       .input('id_cita', sql.Int, id_cita)
       .input('id_cliente', sql.Int, data.id_cliente)
       .input('id_servicio', sql.Int, data.id_servicio)
       .input('id_empleado', sql.Int, data.id_empleado)
-      .input('fecha_cita', sql.Date, data.fecha_cita)
+      .input('fecha_cita', sql.DateTime, fechaHora)
       .input('notas', sql.Text, data.notas || null)
       .input('costo_total', sql.Decimal(8,2), data.costo_total)
       .input('id_estado_cita', sql.Int, data.id_estado_cita || null)
@@ -78,10 +98,31 @@ async function deleteCita(id_cita) {
   }
 }
 
+
+// Obtener citas por cliente
+async function getCitasPorCliente(id_cliente) {
+  try {
+    const pool = await poolPromise;
+    let result = await pool.request()
+      .input('id_cliente', sql.Int, id_cliente)
+      .query(`
+        SELECT c.*, s.nombre_servicio, e.nombre_estado as estado_nombre
+        FROM T_Citas c
+        LEFT JOIN C_Servicios s ON c.id_servicio = s.id_servicio
+        LEFT JOIN C_EstadoCita e ON c.id_estado_cita = e.id_estado_cita
+        WHERE c.id_cliente = @id_cliente
+      `);
+    return result.recordset;
+  } catch (err) {
+    throw err;
+  }
+}
+
 module.exports = {
   getCitas,
   getCitaById,
   createCita,
   updateCita,
-  deleteCita
+  deleteCita,
+  getCitasPorCliente
 };

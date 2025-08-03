@@ -4,9 +4,11 @@ const Citas = require('../modelos/citas');
 async function listarCitas(req, res) {
   try {
     const citas = await Citas.getCitas();
-    res.json(citas);
+      console.log('Error en GET /api/citas:', error);
+      res.json(citas);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener citas' });
+      console.error('Error en GET /api/citas:', error);
+      res.status(500).json({ error: 'Error al obtener citas' });
   }
 }
 
@@ -25,14 +27,16 @@ const { validationResult } = require('express-validator');
 // Crear una nueva cita
 async function crearCita(req, res) {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) {
+  if (!errors.isEmpty())
+     {
     return res.status(400).json({ errores: errors.array() });
   }
   try {
     await Citas.createCita(req.body);
     res.status(201).json({ mensaje: 'Cita creada correctamente' });
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear cita' });
+    console.error('Error al crear cita:', error);
+    res.status(500).json({ error: 'Error al crear cita', detalle: error.message });
   }
 }
 
@@ -60,10 +64,34 @@ async function eliminarCita(req, res) {
   }
 }
 
+// Listar citas por cliente
+async function listarCitasPorCliente(req, res) {
+  try {
+    const id_cliente = req.params.id_cliente;
+    const citas = await Citas.getCitasPorCliente(id_cliente);
+    // Si la consulta es exitosa pero no hay citas, devuelve array vacío
+    if (!Array.isArray(citas)) {
+      console.error('Respuesta inesperada en getCitasPorCliente:', citas);
+      return res.json([]);
+    }
+    res.json(citas);
+  } catch (error) {
+    // Loguea el error real
+    console.error('Error en listarCitasPorCliente:', error);
+    // Si el error es por datos, responde array vacío
+    if (error && error.message && error.message.includes('null') || error.message.includes('JOIN')) {
+      return res.json([]);
+    }
+    // Si el error es grave (base de datos caída), responde 500
+    res.status(500).json({ error: 'Error al obtener citas del cliente', detalle: error.message });
+  }
+}
+
 module.exports = {
   listarCitas,
   obtenerCita,
   crearCita,
   actualizarCita,
-  eliminarCita
+  eliminarCita,
+  listarCitasPorCliente
 };

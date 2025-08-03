@@ -10,6 +10,9 @@ router.use(verificarToken);
 // Listar todas las citas
 router.get('/', citasController.listarCitas);
 
+// Listar citas por cliente
+router.get('/cliente/:id_cliente', citasController.listarCitasPorCliente);
+
 // Obtener una cita por ID
 router.get('/:id', citasController.obtenerCita);
 

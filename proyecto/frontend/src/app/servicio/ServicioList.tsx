@@ -82,7 +82,11 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
             <p className={styles.servicioPrecio}>${Number(precio).toFixed(2)}</p>
             <button
               className={styles.reservaBtn}
-              onClick={() => window.location.href = `/citas?servicio=${id}`}
+              onClick={() => {
+                // Usar el nombre del servicio para autocompletar
+                const nombreServicio = (nombre ?? '').toLowerCase();
+                window.location.href = `/citas?servicio=${encodeURIComponent(nombreServicio)}`;
+              }}
             >
               Reserva ahora
             </button>

@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import Navbar from '../app/components/Navbar';
 import { getClientes, type Cliente } from '../servicios/clientesService';
-import { getCitas, crearCita, Servicio } from '../servicios/citasService';
+import { getCitas, crearCita, editarCita, cancelarCita, Servicio } from '../servicios/citasService';
+import { getServicios } from '../servicios/serviciosService';
+// import eliminado: getHorarios no está exportado
 import '../styles/admin-calendar.css';
 
 interface Cita {
@@ -15,33 +17,70 @@ interface Cita {
   estado: 'confirmada' | 'pendiente' | 'cancelada';
   telefono: string;
   notas?: string;
+  costo: number;
 }
 
 const AdminCalendar = () => {
+  // Suponiendo que tienes un arreglo de horarios en el backend
+  // El arreglo de horarios debe tener: id_horario, hora_inicio, hora_fin, dia
+  const [horarios, setHorarios] = useState<{ id_horario: number; hora_inicio: string; hora_fin: string; dia: string }[]>([]);
+  // Si no tienes el servicio, inicializa horarios vacío
+  // Cargar horarios reales al montar el componente
+  useEffect(() => {
+    async function cargarHorarios() {
+      try {
+        // const horariosData = await getHorarios(); // Eliminado porque no existe la función
+        setHorarios(horariosData);
+      } catch (error) {
+        setHorarios([]);
+      }
+    }
+    cargarHorarios();
+  }, []);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
   const [citas, setCitas] = useState<Cita[]>([]);
   // Cargar citas reales al montar el componente
+  // Función para mapear los datos de la cita del backend al frontend
+  const mapearCita = (cita: any) => ({
+  id: cita.id_cita,
+  cliente: cita.nombre_cliente || cita.cliente || cita.cliente_nombre || cita.nombre || '-',
+  servicio: cita.nombre_servicio || cita.servicio || cita.servicio_nombre || cita.nombre_servicio || '-',
+  fecha: cita.fecha_cita
+    ? formatFecha(cita.fecha_cita.split('T')[0])
+    : (cita.fecha ? formatFecha(cita.fecha) : ''),
+  hora: cita.fecha_cita
+    ? cita.fecha_cita.split('T')[1]?.slice(0,5)
+    : (cita.hora ? cita.hora.slice(0,5) : ''),
+  estado: cita.estado || 'pendiente',
+  telefono: cita.telefono || cita.cliente_telefono || cita.telefono_cliente || cita.celular || '-',
+  notas: cita.notas || '',
+  costo: cita.costo_servicio || cita.costo_total || cita.costo || cita.precio || 0
+});
+
+// Función para formatear la fecha como DD/MM/YYYY
+function formatFecha(fecha: string) {
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return fecha;
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+  const [errorCitas, setErrorCitas] = useState<string | null>(null);
   useEffect(() => {
     async function cargarCitas() {
       try {
         const citasData = await getCitas();
-        // Mapear los datos del backend al formato esperado por el frontend
-        const citasMapeadas = citasData.map((cita: any) => ({
-          id: cita.id_cita,
-          cliente: cita.nombre_cliente || cita.cliente || '',
-          servicio: cita.nombre_servicio || cita.servicio || '',
-          fecha: cita.fecha_cita ? cita.fecha_cita.split('T')[0] : '',
-          hora: cita.fecha_cita ? (cita.fecha_cita.split('T')[1] ? cita.fecha_cita.split('T')[1].substring(0,5) : '') : '',
-          estado: cita.estado || 'pendiente',
-          telefono: cita.telefono || '',
-          notas: cita.notas || ''
-        }));
+        const citasMapeadas = citasData.map(mapearCita);
         setCitas(citasMapeadas);
-      } catch (error) {
+        setErrorCitas(null);
+      } catch (error: any) {
         console.error('Error al cargar citas:', error);
+        setErrorCitas(error.message || 'Error al cargar citas');
       }
     }
     cargarCitas();
@@ -59,7 +98,6 @@ const AdminCalendar = () => {
 
   const [newAppointment, setNewAppointment] = useState({
     cliente: '',
-    apellidos: '',
     telefono: '',
     email: '',
     servicio: '',
@@ -67,6 +105,19 @@ const AdminCalendar = () => {
     hora: '',
     notas: ''
   });
+  const [servicios, setServicios] = useState<{ id: number; nombre: string }[]>([]);
+  // Cargar servicios reales al montar el componente
+  useEffect(() => {
+    async function cargarServicios() {
+      try {
+        const serviciosData = await getServicios();
+        setServicios(serviciosData.map((s: any) => ({ id: s.id_servicio || s.id, nombre: s.nombre_servicio || s.nombre })));
+      } catch (error) {
+        setServicios([]);
+      }
+    }
+    cargarServicios();
+  }, []);
 
   const monthNames = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -132,7 +183,11 @@ const AdminCalendar = () => {
 
   const getCitasForDate = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
-    return citas.filter(cita => cita.fecha === dateString);
+    return citas.filter(cita => {
+      // Aseguramos que la fecha de la cita esté en formato YYYY-MM-DD
+      const citaFecha = cita.fecha ? cita.fecha.split('T')[0] : '';
+      return citaFecha === dateString;
+    });
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -187,8 +242,7 @@ const AdminCalendar = () => {
       ...newAppointment,
       cliente: `${cliente.nombre_cliente} ${cliente.apellido_cliente}`.trim(),
       telefono: cliente.telefono,
-      email: cliente.correo_electronico,
-      apellidos: cliente.apellido_cliente || '',
+      email: cliente.correo_electronico
     });
     
     console.log('Cerrando modal de clientes...');
@@ -231,41 +285,65 @@ const AdminCalendar = () => {
   const handleSubmitAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Construir el objeto para el backend
-      // Asegurar que el servicio sea del tipo correcto
-      const servicioValido = ["masaje", "facial", "manicure", ""].includes(newAppointment.servicio)
-        ? newAppointment.servicio as Servicio
-        : "";
-      const apellidosFinal = selectedCliente
-        ? (selectedCliente.apellido_cliente || newAppointment.apellidos || '')
-        : (newAppointment.apellidos || '');
-      const citaForm = {
-        nombre: selectedCliente ? selectedCliente.nombre_cliente : newAppointment.cliente,
-        apellidos: apellidosFinal,
-        email: newAppointment.email,
-        numero: newAppointment.telefono,
-        fecha: newAppointment.fecha,
-        hora: newAppointment.hora,
-        servicio: servicioValido,
-        notas: newAppointment.notas
+      // Obtener id_cliente
+      const id_cliente = selectedCliente ? selectedCliente.id_cliente : null;
+      if (!id_cliente) throw new Error("Selecciona un cliente válido");
+
+      // Mapear servicio a id_servicio usando el arreglo de servicios dinámico
+      const servicioSeleccionado = servicios.find(s => s.nombre === newAppointment.servicio);
+      const id_servicio = servicioSeleccionado ? servicioSeleccionado.id : 0;
+      if (!id_servicio) throw new Error("Selecciona un servicio válido");
+
+      // Asignar id_empleado por defecto (puedes cambiar la lógica si tienes selección de empleado)
+      const id_empleado = 1;
+
+      // Adaptar fecha y hora
+      const fecha = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
+      const hora = newAppointment.hora;
+
+      // Opcionales
+      const notas = newAppointment.notas || "";
+      const costo_total = 0;
+      const id_estado_cita = 1;
+      // Buscar el id_horario según el día y la hora seleccionada
+      let id_horario: number | null = null;
+      if (horarios.length > 0 && hora && selectedDate) {
+        // Obtener el nombre del día en español
+        const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const diaSemana = diasSemana[selectedDate.getDay()];
+        // Buscar el horario que coincida con el día y rango de horas
+        const horarioEncontrado = horarios.find(h => {
+          if (h.dia !== diaSemana) return false;
+          // Comparar hora seleccionada con el rango
+          // h.hora_inicio y h.hora_fin son tipo 'HH:mm:ss.0000000'
+          const horaInicio = h.hora_inicio.slice(0,5); // HH:mm
+          const horaFin = h.hora_fin.slice(0,5); // HH:mm
+          return hora >= horaInicio && hora <= horaFin;
+        });
+        if (horarioEncontrado) {
+          id_horario = horarioEncontrado.id_horario;
+        }
+      }
+      // Crear el objeto que espera el backend
+      const citaPayload = {
+        id_cliente,
+        id_servicio,
+        id_empleado,
+        fecha, // solo la fecha en formato YYYY-MM-DD
+        hora,  // solo la hora en formato HH:mm
+        notas,
+        costo_total,
+        id_estado_cita,
+        id_horario
       };
-      await crearCita(citaForm);
+
+      await crearCita(citaPayload);
       // Recargar citas reales
       const citasData = await getCitas();
-      const citasMapeadas = citasData.map((cita: any) => ({
-        id: cita.id_cita,
-        cliente: cita.nombre_cliente || cita.cliente || '',
-        servicio: cita.nombre_servicio || cita.servicio || '',
-        fecha: cita.fecha_cita ? cita.fecha_cita.split('T')[0] : '',
-        hora: cita.fecha_cita ? (cita.fecha_cita.split('T')[1] ? cita.fecha_cita.split('T')[1].substring(0,5) : '') : '',
-        estado: cita.estado || 'pendiente',
-        telefono: cita.telefono || '',
-        notas: cita.notas || ''
-      }));
+      const citasMapeadas = citasData.map(mapearCita);
       setCitas(citasMapeadas);
       setNewAppointment({
         cliente: '',
-        apellidos: '',
         telefono: '',
         email: '',
         servicio: '',
@@ -280,12 +358,31 @@ const AdminCalendar = () => {
     }
   };
 
+  // Definir days correctamente y tipar parámetros
+  const days = getDaysInMonth(currentDate);
+
+  // Función para actualizar el estado de la cita
+  const updateAppointmentStatus = async (id: number, estado: 'confirmada' | 'pendiente' | 'cancelada') => {
+    try {
+      let id_estado_cita = 1; // pendiente
+      if (estado === 'confirmada') id_estado_cita = 2;
+      if (estado === 'cancelada') id_estado_cita = 3;
+      await editarCita(id, { id_estado_cita });
+      // Recargar citas reales
+      const citasData = await getCitas();
+      const citasMapeadas = citasData.map(mapearCita);
+      setCitas(citasMapeadas);
+    } catch (error: any) {
+      alert(error.message || 'Error al actualizar el estado de la cita');
+    }
+  };
+
+  // Función para cerrar el modal de nueva cita
   const handleCloseAppointmentForm = () => {
     setShowAppointmentForm(false);
     setSelectedCliente(null);
     setNewAppointment({
       cliente: '',
-      apellidos: '',
       telefono: '',
       email: '',
       servicio: '',
@@ -295,25 +392,16 @@ const AdminCalendar = () => {
     });
   };
 
-  const updateAppointmentStatus = (id: number, newStatus: 'confirmada' | 'pendiente' | 'cancelada') => {
-    setCitas(prev => prev.map(cita => 
-      cita.id === id ? { ...cita, estado: newStatus } : cita
-    ));
-  };
-
-  const days = getDaysInMonth(currentDate);
-
-  // Debug adicional antes del render
-  console.log('🎯 Renderizando componente AdminCalendar');
-  console.log('showAppointmentForm:', showAppointmentForm);
-  console.log('showClientList:', showClientList);
-  console.log('selectedCliente:', selectedCliente);
-
   return (
     <>
       <Navbar />
       <div className="admin-calendar-container">
         <div className="admin-header">
+          {errorCitas && (
+            <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '6px', marginBottom: '12px', fontWeight: 'bold', textAlign: 'center' }}>
+              Error al cargar citas: {errorCitas}
+            </div>
+          )}
           <h1>Panel de Administración - Calendario de Citas</h1>
           <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
             <button 
@@ -352,10 +440,9 @@ const AdminCalendar = () => {
           </div>
 
           <div className="calendar-days">
-            {days.map((day, index) => {
+            {days.map((day: { date: Date; isCurrentMonth: boolean }, index: number) => {
               const citasForDay = getCitasForDate(day.date);
               const isToday = day.date.toDateString() === new Date().toDateString();
-              
               return (
                 <div
                   key={index}
@@ -393,6 +480,9 @@ const AdminCalendar = () => {
                       <div className="appointment-header">
                         <h4>{cita.cliente}</h4>
                         <span className="appointment-time">{cita.hora}</span>
+                        <span className="appointment-cost" style={{ marginLeft: '12px', color: '#357a6c', fontWeight: 'bold' }}>
+                          ${cita.costo}
+                        </span>
                       </div>
                       <div className="appointment-details">
                         <p><strong>Servicio:</strong> {cita.servicio}</p>
@@ -427,7 +517,23 @@ const AdminCalendar = () => {
                       </div>
                     </div>
                   ))}
-
+                  {/* Mostrar horas agendadas para el día */}
+                  <div style={{ margin: '24px 0 12px 0', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                    <h4 style={{ marginBottom: '8px', color: '#204d47' }}>Horas agendadas para este día:</h4>
+                    {(() => {
+                      const citasDia = getCitasForDate(selectedDate);
+                      if (citasDia.length === 0) return <p style={{ color: '#666' }}>No hay horas agendadas.</p>;
+                      return (
+                        <ul style={{ listStyle: 'none', padding: 0 }}>
+                          {citasDia.map(cita => (
+                            <li key={cita.id} style={{ marginBottom: '6px', color: '#357a6c', fontWeight: 500 }}>
+                              {cita.hora}
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()}
+                  </div>
       {/* Modal para seleccionar cliente */}
       {showClientList && (
         <div className="modal-overlay" onClick={() => setShowClientList(false)}>
@@ -666,17 +772,7 @@ const AdminCalendar = () => {
                             </option>
                           ))}
                         </select>
-                        {/* Si el cliente seleccionado no tiene apellidos, mostrar input para capturarlos */}
-                        {selectedCliente && !selectedCliente.apellido_cliente && (
-                          <input
-                            type="text"
-                            value={newAppointment.apellidos || ''}
-                            onChange={e => setNewAppointment({ ...newAppointment, apellidos: e.target.value })}
-                            placeholder="Apellidos del cliente"
-                            required
-                            style={{ marginTop: '0.5rem' }}
-                          />
-                        )}
+                        {/* No mostrar input de apellidos si se selecciona un cliente existente */}
                       </>
                     ) : (
                       <input
@@ -721,22 +817,10 @@ const AdminCalendar = () => {
                       required
                     >
                       <option value="">Seleccionar servicio</option>
-                      <option value="Masaje Relajante">Masaje Relajante</option>
-                      <option value="Masaje Deportivo">Masaje Deportivo</option>
-                      <option value="Facial">Facial</option>
-                      <option value="Manicure">Manicure</option>
-                      <option value="Pedicure">Pedicure</option>
+                      {servicios.map(servicio => (
+                        <option key={servicio.id} value={servicio.nombre}>{servicio.nombre}</option>
+                      ))}
                     </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Fecha</label>
-                    <input
-                      type="date"
-                      value={newAppointment.fecha}
-                      onChange={(e) => setNewAppointment({...newAppointment, fecha: e.target.value})}
-                      min={new Date().toISOString().split('T')[0]}
-                      required
-                    />
                   </div>
                 </div>
 
@@ -747,15 +831,12 @@ const AdminCalendar = () => {
                       value={newAppointment.hora}
                       onChange={e => setNewAppointment({ ...newAppointment, hora: e.target.value })}
                       required
-                      disabled={!newAppointment.fecha}
+                      disabled={!selectedDate}
                     >
                       <option value="">Selecciona una hora</option>
                       {(() => {
-                        if (!newAppointment.fecha) return null;
-                        // newAppointment.fecha es YYYY-MM-DD, pero new Date() lo interpreta como UTC, puede dar día incorrecto
-                        const [year, month, day] = newAppointment.fecha.split('-').map(Number);
-                        const fecha = new Date(year, month - 1, day);
-                        const dia = fecha.getDay(); // 0=Domingo, 6=Sábado
+                        if (!selectedDate) return null;
+                        const dia = selectedDate.getDay(); // 0=Domingo, 6=Sábado
                         let horas: string[] = [];
                         if (dia === 0) {
                           // Domingo cerrado
@@ -814,10 +895,38 @@ const AdminCalendar = () => {
               <button className="close-btn" onClick={() => setShowEditForm(false)}>×</button>
             </div>
             <div className="modal-body">
-              <form className="appointment-form" onSubmit={e => {
+              <form className="appointment-form" onSubmit={async e => {
                 e.preventDefault();
-                setCitas(prev => prev.map(cita => cita.id === editAppointment.id ? { ...editAppointment } : cita));
-                setShowEditForm(false);
+                // Validar campos requeridos
+                if (!editAppointment.fecha || !editAppointment.hora || !editAppointment.servicio) {
+                  alert('Completa todos los campos requeridos');
+                  return;
+                }
+                try {
+                  // Mapear servicio a id_servicio usando el arreglo de servicios dinámico
+                  const servicioSeleccionado = servicios.find(s => s.nombre === editAppointment.servicio);
+                  const id_servicio = servicioSeleccionado ? servicioSeleccionado.id : 0;
+                  if (!id_servicio) throw new Error("Selecciona un servicio válido");
+                  // id_estado_cita actual
+                  let id_estado_cita = 1;
+                  if (editAppointment.estado === 'confirmada') id_estado_cita = 2;
+                  if (editAppointment.estado === 'cancelada') id_estado_cita = 3;
+                  await editarCita(editAppointment.id, {
+                    fecha: editAppointment.fecha,
+                    hora: editAppointment.hora,
+                    notas: editAppointment.notas,
+                    id_servicio,
+                    id_estado_cita,
+                    // Opcional: puedes agregar id_cliente, id_empleado si lo tienes
+                  });
+                  // Recargar citas reales
+      const citasData = await getCitas();
+      const citasMapeadas = citasData.map(mapearCita);
+      setCitas(citasMapeadas);
+                  setShowEditForm(false);
+                } catch (error: any) {
+                  alert(error.message || 'Error al editar la cita');
+                }
               }}>
                 <div className="form-row">
                   <div className="form-group">
@@ -850,11 +959,9 @@ const AdminCalendar = () => {
                       required
                     >
                       <option value="">Seleccionar servicio</option>
-                      <option value="Masaje Relajante">Masaje Relajante</option>
-                      <option value="Masaje Deportivo">Masaje Deportivo</option>
-                      <option value="Facial">Facial</option>
-                      <option value="Manicure">Manicure</option>
-                      <option value="Pedicure">Pedicure</option>
+                      {servicios.map(servicio => (
+                        <option key={servicio.id} value={servicio.nombre}>{servicio.nombre}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="form-group">

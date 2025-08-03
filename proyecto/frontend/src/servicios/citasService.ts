@@ -1,3 +1,59 @@
+export async function cancelarCitaCompleta(cita: any): Promise<any> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json"
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  // Enviar todos los datos, solo cambiando el estado
+  const payload = {
+    id_cliente: cita.id_cliente,
+    id_servicio: cita.id_servicio,
+    id_empleado: cita.id_empleado,
+    fecha: cita.fecha_cita?.split("T")[0],
+    hora: cita.fecha_cita?.split("T")[1]?.slice(0,5),
+    notas: cita.notas,
+    id_estado_cita: 3, // Cancelada
+    id_horario: cita.id_horario,
+    costo_total: cita.costo_total
+  };
+  const res = await fetch(`${API_URL}/api/citas/${cita.id_cita}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error("Error al cancelar cita");
+  return await res.json();
+}
+// Servicio para conectar el frontend con el backend para citas
+import axios from "axios";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+export type Servicio = "" | "masaje" | "facial" | "manicure";
+export interface CitaForm {
+  nombre: string;
+  email: string;
+  numero: string;
+  fecha: string;
+  id_horario: string;
+  hora: string;
+  servicio: Servicio;
+  notas: string;
+}
+
+export interface CitaPayload {
+  id_cliente: number;
+  id_servicio: number;
+  id_empleado: number;
+  fecha: string;
+  hora: string;
+  notas: string;
+  costo_total: number;
+  id_estado_cita: number;
+  id_horario: number | null;
+}
+
 // Obtener todas las citas del backend
 export async function getCitas(): Promise<any[]> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -14,66 +70,67 @@ export async function getCitas(): Promise<any[]> {
     throw new Error(mensaje);
   }
 }
-// Servicio para conectar el frontend con el backend para citas
-import axios from "axios";
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export type Servicio = "" | "masaje" | "facial" | "manicure";
-export interface CitaForm {
-  nombre: string;
-  email: string;
-  numero: string;
-  fecha: string;
-  hora: string;
-  servicio: Servicio;
-  notas: string;
+export async function crearCita(data: CitaPayload): Promise<any> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json"
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/citas`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error("Error al crear cita");
+  return await res.json();
 }
 
-export async function crearCita(form: CitaForm): Promise<any> {
-  // Validación frontend antes de enviar al backend
-  if (!form.nombre) throw new Error("El nombre es obligatorio");
-  if (!form.email || !/^[^@]+@[^@]+\.[^@]+$/.test(form.email)) throw new Error("El correo no es válido");
-  if (!form.numero) throw new Error("El número es obligatorio");
-  if (!form.fecha) throw new Error("La fecha es obligatoria");
-  if (!form.hora) throw new Error("La hora es obligatoria");
-  if (!form.servicio) throw new Error("El servicio es obligatorio");
-
-  // Obtener token y usuario
+export async function cancelarCita(id_cita: number): Promise<any> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const usuarioLocal = typeof window !== "undefined" ? localStorage.getItem("usuario") : null;
-  const usuario = usuarioLocal ? JSON.parse(usuarioLocal) : {};
-
-  // Mapear datos al formato que espera el backend
-  const serviciosMap: Record<Servicio, number> = {
-    "": 0,
-    masaje: 1,
-    facial: 2,
-    manicure: 3
-    // Agrega más servicios si tienes
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json"
   };
-  const id_servicio = serviciosMap[form.servicio];
-  const fecha_cita = form.fecha && form.hora ? `${form.fecha}T${form.hora}` : form.fecha;
-  const datos = {
-    id_cliente: usuario.id_cliente || null,
-    id_servicio,
-    id_empleado: null,
-    fecha_cita,
-    notas: form.notas,
-    costo_total: null,
-    id_estado_cita: null,
-    id_horario: null
-  };
-
-  try {
-    const res = await axios.post(`${API_URL}/api/citas`, datos, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      }
-    });
-    return res.data;
-  } catch (err: any) {
-    const mensaje = err?.response?.data?.mensaje || err?.response?.data?.error || err?.message || "Error al crear cita";
-    throw new Error(mensaje);
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
+  // Solo cambiamos el estado a cancelado (id_estado_cita = 3)
+  const res = await fetch(`${API_URL}/api/citas/${id_cita}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ id_estado_cita: 3 })
+  });
+  if (!res.ok) throw new Error("Error al cancelar cita");
+  return await res.json();
+}
+
+export async function editarCita(
+  id_cita: number,
+  data: {
+    fecha?: string;
+    fecha_cita?: string;
+    hora?: string;
+    notas?: string;
+    id_cliente?: number;
+    id_empleado?: number;
+    id_servicio?: number;
+    id_estado_cita?: number;
+  }
+): Promise<any> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json"
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/citas/${id_cita}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error("Error al editar cita");
+  return await res.json();
 }

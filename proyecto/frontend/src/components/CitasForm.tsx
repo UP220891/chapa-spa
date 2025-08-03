@@ -9,6 +9,7 @@ import { crearCita, CitaForm, Servicio } from "@/servicios/citasService";
 const CitasForm: React.FC = () => {
   const [servicios, setServicios] = React.useState<any[]>([]);
   const [nombreServicio, setNombreServicio] = React.useState<string>("");
+  const [servicioInicial, setServicioInicial] = React.useState<string>("");
   // Solo una vez:
   // Solo una vez:
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
@@ -26,9 +27,17 @@ const CitasForm: React.FC = () => {
         const data = await res.json();
         setServicios(data);
         if (servicioParam) {
-          // Si el param es id (número), busca el nombre por id
-          const servicioEncontrado = data.find((s: any) => s.id?.toString() === servicioParam);
-          if (servicioEncontrado) setNombreServicio(servicioEncontrado.nombre);
+          // Buscar por nombre (case-insensitive)
+          const servicioEncontrado = data.find((s: any) =>
+            (s.nombre_servicio || s.nombre || "").toLowerCase() === decodeURIComponent(servicioParam).toLowerCase()
+          );
+          if (servicioEncontrado) {
+            setServicioInicial(servicioEncontrado.nombre_servicio || servicioEncontrado.nombre);
+            setNombreServicio(servicioEncontrado.nombre_servicio || servicioEncontrado.nombre);
+          } else {
+            setServicioInicial("");
+            setNombreServicio("");
+          }
         }
       } catch {}
     }
@@ -38,24 +47,28 @@ const CitasForm: React.FC = () => {
   const [usuario, setUsuario] = React.useState<any>(null);
   const [bloqueado, setBloqueado] = React.useState(true);
   // Convierte el id de servicio recibido en la URL a un valor válido del tipo Servicio
-  const servicioInicial = servicioParam as Servicio;
+  // Normaliza el parámetro a minúsculas y lo valida
+  // Ya no se usa la declaración previa, solo el estado servicioInicial
   const [form, setForm] = React.useState<CitaForm>({
     nombre: "",
     email: "",
     numero: "",
     fecha: "",
+    id_horario: "",
     hora: "",
-    servicio: servicioInicial,
+    servicio: "",
     notas: ""
   });
 
   // Autocompleta nombre, email, número y servicio si hay usuario y parámetro de servicio
-  // Solo autocompletar el servicio en automático si viene por parámetro
+  // Autocompletar el campo servicio si hay servicioInicial
   React.useEffect(() => {
-    setForm(prev => ({
-      ...prev,
-      servicio: prev.servicio || servicioInicial
-    }));
+    if (servicioInicial) {
+      setForm(prev => ({
+        ...prev,
+        servicio: servicioInicial as any // acepta cualquier string
+      }));
+    }
   }, [servicioInicial]);
 
   React.useEffect(() => {
@@ -77,35 +90,78 @@ const CitasForm: React.FC = () => {
     }
   }, []);
 
-  // Lógica de horarios del SPA
-  const getHorasDisponibles = () => {
-    if (!form.fecha) return [];
-    const fecha = new Date(form.fecha);
-    const dia = fecha.getDay(); // 0=Domingo, 6=Sábado
-    let horas: string[] = [];
-    if (dia === 0) return []; // Domingo cerrado
-    if (dia >= 1 && dia <= 5) {
-      // Lunes a viernes 9-18
-      for (let h = 9; h <= 18; h++) {
-        horas.push(h.toString().padStart(2, '0') + ':00');
-      }
-    } else if (dia === 6) {
-      // Sábado 10-14
-      for (let h = 10; h <= 14; h++) {
-        horas.push(h.toString().padStart(2, '0') + ':00');
-      }
+  // Obtener horarios reales desde el backend
+  const [horarios, setHorarios] = React.useState<any[]>([]);
+  React.useEffect(() => {
+    async function cargarHorarios() {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL;
+        const res = await fetch(`${API_URL}/api/horarios`);
+        const data = await res.json();
+        setHorarios(data);
+        console.log('Horarios recibidos del backend:', data);
+      } catch {}
+    }
+    cargarHorarios();
+  }, []);
+
+  // Filtrar horarios por día seleccionado
+  const getHora = (str: string) => {
+    // Si el string ya es tipo '09:00:00.000Z', extrae solo la hora
+    if (typeof str === 'string' && str.includes('T')) {
+      return str.slice(11, 16); // 'HH:MM'
+    }
+    // Si es tipo '09:00', regresa tal cual
+    if (typeof str === 'string' && str.length === 5) {
+      return str;
+    }
+    // Fallback: usar Date
+    const date = new Date(str);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+  // Generar las horas disponibles en intervalos de 1 hora
+  const generarHoras = (inicio: string, fin: string) => {
+    const horas: string[] = [];
+    let h = parseInt(inicio.slice(0,2));
+    let m = parseInt(inicio.slice(3,5));
+    const hFin = parseInt(fin.slice(0,2));
+    while (h < hFin) {
+      const horaStr = `${h.toString().padStart(2,'0')}:00`;
+      horas.push(horaStr);
+      h++;
     }
     return horas;
   };
 
+  // Filtrar horarios por día seleccionado y generar opciones de hora
+  const getHorasDisponibles = () => {
+    if (!form.fecha) return [];
+    const [year, month, day] = form.fecha.split('-').map(Number);
+    const fecha = new Date(year, month - 1, day);
+    const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const diaActual = diasSemana[fecha.getDay()];
+    const horarioDia = horarios.find(h => h.dia === diaActual);
+    if (!horarioDia) return [];
+    const inicio = getHora(horarioDia.hora_inicio);
+    const fin = getHora(horarioDia.hora_fin);
+    // Solo mostrar si es día válido
+    if (["Lunes","Martes","Miércoles","Jueves","Viernes"].includes(diaActual)) {
+      return generarHoras('09:00', '18:00');
+    }
+    if (diaActual === "Sábado") {
+      return generarHoras('10:00', '14:00');
+    }
+    return [];
+  };
   const autocompletarUsuario = () => {
     if (!usuario) {
       setNotification({ type: 'error', message: 'No se encontró información de usuario en el sistema.' });
       return;
     }
     let cambios: Partial<CitaForm> = {};
-    if (usuario.nombre) cambios.nombre = usuario.nombre;
-    if (usuario.email) cambios.email = usuario.email;
+    if (usuario.nombre_cliente) cambios.nombre = usuario.nombre_cliente;
+    if (usuario.correo_electronico) cambios.email = usuario.correo_electronico;
     if (usuario.telefono) cambios.numero = usuario.telefono;
     setForm(prev => ({
       ...prev,
@@ -132,7 +188,43 @@ const CitasForm: React.FC = () => {
   const [error, setError] = React.useState<string>("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.id]: e.target.value });
+    // Si el campo es hora, asigna el id_horario del horario del día seleccionado
+    if (e.target.id === "hora") {
+      let idHorario = "";
+      if (form.fecha) {
+        const [year, month, day] = form.fecha.split('-').map(Number);
+        const fecha = new Date(year, month - 1, day);
+        const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        const diaActual = diasSemana[fecha.getDay()];
+        const horarioDia = horarios.find(h => h.dia === diaActual);
+        if (horarioDia) {
+          idHorario = String(horarioDia.id_horario);
+        }
+      }
+      setForm({
+        ...form,
+        hora: e.target.value,
+        id_horario: idHorario
+      });
+    } else if (e.target.id === "fecha") {
+      // Si cambia la fecha y ya hay hora seleccionada, asigna el id_horario del horario del día
+      let idHorario = form.id_horario;
+      if (e.target.value && form.hora) {
+        const [year, month, day] = e.target.value.split('-').map(Number);
+        const fecha = new Date(year, month - 1, day);
+        const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        const diaActual = diasSemana[fecha.getDay()];
+        const horarioDia = horarios.find(h => h.dia === diaActual);
+        if (horarioDia) {
+          idHorario = String(horarioDia.id_horario);
+        } else {
+          idHorario = "";
+        }
+      }
+      setForm({ ...form, fecha: e.target.value, id_horario: idHorario });
+    } else {
+      setForm({ ...form, [e.target.id]: e.target.value });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -141,9 +233,48 @@ const CitasForm: React.FC = () => {
     setMensaje("");
     setError("");
     try {
-      await crearCita(form);
+      // Buscar el id_servicio correspondiente al nombre seleccionado
+      const servicioSeleccionado = servicios.find((s: any) => (s.nombre_servicio || s.nombre) === form.servicio);
+      const id_servicio = Number(servicioSeleccionado?.id_servicio || servicioSeleccionado?.id);
+      if (!id_servicio) throw new Error("No se encontró el servicio seleccionado");
+
+      // Obtener id_cliente del usuario
+      const id_cliente = usuario?.id_cliente;
+      if (!id_cliente) throw new Error("No se encontró el id_cliente del usuario");
+
+      // Asignar id_empleado por defecto (puedes cambiar la lógica si tienes selección de empleado)
+      const id_empleado = 1; // Por defecto, o puedes obtenerlo de la base de datos o del usuario
+
+      // Adaptar fecha y hora
+      const fecha = form.fecha;
+      const id_horario = form.id_horario ? Number(form.id_horario) : null;
+      const hora = form.hora;
+
+      // Opcionales
+      const notas = form.notas || "";
+      // Buscar el costo del servicio seleccionado
+      let costo_total = 0;
+      if (servicioSeleccionado && (servicioSeleccionado.precio || servicioSeleccionado.costo)) {
+        costo_total = Number(servicioSeleccionado.precio || servicioSeleccionado.costo);
+      }
+      const id_estado_cita = 1; // Estado inicial, puedes cambiarlo
+
+      // Crear el objeto que espera el backend
+      const citaPayload = {
+        id_cliente,
+        id_servicio,
+        id_empleado,
+        fecha,
+        hora,
+        id_horario,
+        notas,
+        costo_total,
+        id_estado_cita
+      };
+
+      await crearCita(citaPayload);
       setNotification({ type: 'success', message: '¡Cita reservada exitosamente!' });
-      setForm({ nombre: "", email: "", numero: "", fecha: "", hora: "", servicio: "", notas: "" });
+      setForm({ nombre: "", email: "", numero: "", fecha: "", id_horario: "", hora: "", servicio: "", notas: "" });
     } catch (err: any) {
       setNotification({ type: 'error', message: err?.message || "Error al reservar la cita" });
     }
@@ -152,33 +283,56 @@ const CitasForm: React.FC = () => {
 
   return (
     <div className="register-container" style={{ position: 'relative' }}>
-      {nombreServicio && (
-        <div style={{textAlign:'center',marginBottom:'1rem',fontWeight:600,color:'#204d47'}}>
-          Servicio seleccionado: {nombreServicio}
-        </div>
-      )}
-      {notification && (
-        <div
-          className={`notification-popup ${notification.type} ${showNotification ? 'show' : 'hide'}`}
-          style={{ position: 'absolute', top: 30, left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+      {/* Botón regresar a servicios arriba y centrado */}
+      <div style={{ display:'flex', justifyContent:'center', marginBottom:'1.2rem', marginTop:'0.5rem' }}>
+        <button
+          type="button"
+          style={{
+            background:'#204d47',
+            color:'#fff',
+            border:'none',
+            borderRadius:'8px',
+            padding:'0.5rem 1.3rem 0.5rem 1.7rem',
+            fontWeight:600,
+            fontSize:'1rem',
+            boxShadow:'0 2px 8px rgba(32,77,71,0.10)',
+            position:'relative',
+            transition:'background 0.2s',
+            cursor:'pointer',
+            marginLeft:0,
+            marginTop:0,
+            marginBottom:0,
+          }}
+          onMouseOver={e => (e.currentTarget.style.background='#357a6c')}
+          onMouseOut={e => (e.currentTarget.style.background='#204d47')}
+          onClick={() => { window.location.href = '/servicio'; }}
         >
-          <span className="notification-icon">
-            {notification.type === 'error' ? '⚠️' : '✅'}
-          </span>
-          {notification.message}
-          <button
-            className="notification-close"
-            onClick={() => {
-              setShowNotification(false);
-              setTimeout(() => setNotification(null), 400);
-            }}
-            aria-label="Cerrar notificación"
-          >
-            &times;
-          </button>
-        </div>
-      )}
+          <span style={{ position:'absolute', left:'1rem', top:'50%', transform:'translateY(-50%)', fontSize:'1.2em' }}>←</span>
+          <span style={{ marginLeft:'0.7rem' }}>Regresar a servicios</span>
+        </button>
+      </div>
       <div className="register-card">
+        {(notification && typeof notification.type === 'string' && typeof notification.message === 'string') && (
+          <div
+            className={`notification-popup ${notification.type} ${showNotification ? 'show' : 'hide'}`}
+            style={{ position: 'absolute', top: 30, left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+          >
+            <span className="notification-icon">
+              {notification.type === 'error' ? '⚠️' : '✅'}
+            </span>
+            {notification.message}
+            <button
+              className="notification-close"
+              onClick={() => {
+                setShowNotification(false);
+                setTimeout(() => setNotification(null), 400);
+              }}
+              aria-label="Cerrar notificación"
+            >
+              &times;
+            </button>
+          </div>
+        )}
         <div className="register-image-section">
           <img src="/images/cita.png" alt="Cita" className="register-image" />
         </div>
@@ -186,6 +340,11 @@ const CitasForm: React.FC = () => {
           <div className="register-header">
             <h1 className="register-heading">Reservación de cita</h1>
           </div>
+          {nombreServicio && (
+            <div style={{textAlign:'center',marginBottom:'1rem',fontWeight:600,color:'#204d47'}}>
+              Servicio seleccionado: {nombreServicio}
+            </div>
+          )}
           {bloqueado && (
             <div style={{ color: 'red', fontWeight: 600, textAlign: 'center', marginBottom: '1rem' }}>
               Debes iniciar sesión para reservar una cita.
@@ -209,7 +368,7 @@ const CitasForm: React.FC = () => {
                 <input type="email" id="email" placeholder="Ingresar Email" className="register-input" required style={{ color: '#204d47' }} value={form.email} onChange={handleChange} />
               </div>
             </div>
-            {/* Segunda fila: Número, Fecha, Hora */}
+            {/* Segunda fila: Número, Fecha, Hora (sin campo Horario) */}
             <div className="register-row">
               <div className="register-col">
                 <label htmlFor="numero" className="register-label">Número</label>
@@ -220,26 +379,46 @@ const CitasForm: React.FC = () => {
                 <input type="date" id="fecha" className="register-input" required style={{ color: '#204d47' }} value={form.fecha} onChange={handleChange} />
               </div>
               <div className="register-col">
-                <label htmlFor="hora" className="register-label">Hora</label>
-                <select id="hora" className="register-input" required style={{ color: '#204d47' }} value={form.hora} onChange={handleChange} disabled={!form.fecha || getHorasDisponibles().length === 0}>
-                  <option value="">Selecciona hora</option>
-                  {getHorasDisponibles().map(hora => (
-                    <option key={hora} value={hora}>{hora}</option>
-                  ))}
-                </select>
+                <label htmlFor="id_horario" className="register-label">Horario</label>
+                {form.fecha && getHorasDisponibles().length === 0 ? (
+                  <div style={{ color: 'red', fontWeight: 500, marginTop: 8 }}>
+                    No hay horarios disponibles para el día seleccionado.
+                  </div>
+                ) : (
+                  <select id="hora" className="register-input" required style={{ color: '#204d47' }} value={form.hora || ""} onChange={handleChange} disabled={!form.fecha || getHorasDisponibles().length === 0}>
+                    <option value="">Selecciona hora</option>
+                    {getHorasDisponibles().map((hora) => (
+                      <option key={hora} value={hora}>{hora}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
             {/* Tercera fila: Servicio */}
             <div className="register-row">
               <div className="register-col" style={{ flex: 2 }}>
                 <label htmlFor="servicio" className="register-label">Servicio</label>
-                <select id="servicio" className="register-input" required style={{ color: '#204d47' }} value={form.servicio} onChange={handleChange}>
+                <select
+                  id="servicio"
+                  className="register-input"
+                  required
+                  style={{ color: '#204d47', background: !!servicioInicial ? '#e0f1ee' : undefined }}
+                  value={form.servicio}
+                  onChange={handleChange}
+                  disabled={!!servicioInicial}
+                >
                   <option value="">Servicio</option>
-                  <option value="masaje">Masaje</option>
-                  <option value="facial">Facial</option>
-                  <option value="manicure">Manicure</option>
-                  {/* Agrega más servicios aquí */}
+                  {servicios.map((s: any) => (
+                    <option key={s.id_servicio || s.id} value={s.nombre_servicio || s.nombre}>
+                      {s.nombre_servicio || s.nombre}
+                    </option>
+                  ))}
                 </select>
+                {servicioInicial && (
+                  <div style={{ color: '#357a6c', fontWeight: 500, marginTop: 6 }}>
+                    Servicio seleccionado automáticamente: <b>{servicioInicial}</b>
+                  </div>
+                )}
               </div>
               <div className="register-col"></div>
               <div className="register-col"></div>
