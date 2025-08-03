@@ -45,50 +45,63 @@ const Page = () => {
     (servicio.descripcion ? servicio.descripcion.toLowerCase() : "").includes(busqueda.toLowerCase())
   );
 
-  return (
-    <div>
-      <Navbar usuario={usuario} />
-      <h1 className={styles.tituloServicios}>Servicios Disponibles</h1>
-      <Busqueda valor={busqueda} onChange={e => setBusqueda(e.target.value)} />
-      {loading ? (
-        <p>Cargando servicios...</p>
-      ) : error ? (
-        <p style={{ color: 'red' }}>{error}</p>
-      ) : (
-        <>
-          <ServicioList servicios={serviciosFiltrados} />
-          {(usuario && (usuario.rol === 'admin' || usuario.rol === 'empleado')) && (
-            <AgregarServicio />
-          )}
-        </>
-      )}
-    </div>
-  );
-};
+  const [showAgregar, setShowAgregar] = useState(false);
+   return (
+     <div>
+       <Navbar usuario={usuario} />
+       <h1 className={styles.tituloServicios}>Servicios Disponibles</h1>
+       <Busqueda valor={busqueda} onChange={e => setBusqueda(e.target.value)} />
+       {(usuario && (usuario.rol === 'admin' || usuario.rol === 'empleado')) && (
+         <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+           <button
+             onClick={() => setShowAgregar(true)}
+             className={styles.reservaBtn}
+             style={{
+               fontSize: '1rem',
+               fontWeight: 700,
+               padding: '0.5rem 1.2rem',
+               borderRadius: '10px',
+               display: 'flex',
+               alignItems: 'center',
+               gap: '8px',
+               boxShadow: '0 2px 8px rgba(32,77,71,0.13)',
+               background: 'linear-gradient(90deg, #4f46e5 0%, #357a6c 100%)',
+               marginBottom: '1rem',
+               marginTop: '0',
+               transition: 'background 0.2s'
+             }}
+           >
+             <span style={{ fontSize: '1.2rem', fontWeight: 900, marginRight: '6px' }}>+</span>
+             Agregar nuevo servicio
+           </button>
+         </div>
+       )}
+       {showAgregar && (
+         <AgregarServicio onClose={() => setShowAgregar(false)} />
+       )}
+       {loading ? (
+         <p>Cargando servicios...</p>
+       ) : error ? (
+         <p style={{ color: 'red' }}>{error}</p>
+       ) : (
+         <ServicioList servicios={serviciosFiltrados} />
+       )}
+     </div>
+   );
+}
 
-// Componente para mostrar botón y formulario
-const AgregarServicio: React.FC = () => {
-  const [mostrar, setMostrar] = useState(false);
+
+// Componente para mostrar el formulario directamente
+const AgregarServicio: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const [token, setToken] = useState<string | undefined>(undefined);
-
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setToken(localStorage.getItem('token') || undefined);
     }
-  }, [mostrar]);
-
+  }, []);
   return (
     <div style={{ margin: '2rem auto', textAlign: 'center' }}>
-      {!mostrar ? (
-        <button
-          onClick={() => setMostrar(true)}
-          style={{ padding: '10px 24px', background: '#0070f3', color: '#fff', border: 'none', borderRadius: 4, fontSize: 16 }}
-        >
-          Agregar nuevo servicio
-        </button>
-      ) : (
-        <FormularioServicio token={token} onServicioCreado={() => window.location.reload()} />
-      )}
+      <FormularioServicio token={token} onServicioCreado={() => { window.location.reload(); if (onClose) onClose(); }} />
     </div>
   );
 };
