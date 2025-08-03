@@ -44,8 +44,8 @@ async function getCitaById(id_cita) {
 async function createCita(data) {
   try {
     const pool = await poolPromise;
-    // Combinar fecha y hora en formato DATETIME
-    const fechaHora = `${data.fecha}T${data.hora}:00`;
+    // Combinar fecha y hora en formato DATETIME (sin ':00' extra)
+    const fechaHora = `${data.fecha}T${data.hora}`;
     let result = await pool.request()
       .input('id_cliente', sql.Int, data.id_cliente)
       .input('id_servicio', sql.Int, data.id_servicio)
