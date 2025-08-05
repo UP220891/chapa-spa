@@ -67,19 +67,17 @@ function LoginForm({ showHomeButton = false }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f7fafd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.12)', borderRadius: '24px', background: '#fff', display: 'flex', overflow: 'hidden', minWidth: '800px', maxWidth: '1100px', margin: 'auto', padding: '2.5rem 2rem' }}>
-        <div className="login-form-section" style={{ borderRadius: '24px 0 0 24px', minWidth: '340px', maxWidth: '480px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1.5rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.1rem', gap: '0.3rem' }}>
-            <div style={{ background: '#fff', borderRadius: '50%', padding: '22px', boxShadow: '0 6px 24px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.7rem' }}>
-              <img
-                src="/images/logo_chapaspa.png"
-                alt="Logo ChapaSPA"
-                style={{ height: '100px', width: '100px', objectFit: 'contain', borderRadius: '50%' }}
-              />
-            </div>
+    <div style={{ minHeight: '100vh', background: '#f7fafd', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.12)', borderRadius: '20px', background: '#fff', display: 'flex', overflow: 'hidden', minWidth: '600px', maxWidth: '850px', margin: 'auto', padding: '1.5rem 1rem' }}>
+        <div className="login-form-section" style={{ borderRadius: '20px 0 0 20px', minWidth: '280px', maxWidth: '380px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '1.5rem 1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '0.8rem', gap: '0.2rem' }}>
+            <img
+              src="/images/logo_chapaspa.png"
+              alt="Logo ChapaSPA"
+              style={{ height: '75px', width: '75px', objectFit: 'contain', borderRadius: '50%' }}
+            />
           </div>
-          <h1 className="login-heading" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#204d47', marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.1', letterSpacing: '0.04em' }}>Iniciar sesión</h1>
+          <h1 className="login-heading" style={{ fontSize: '1.8rem', fontWeight: 900, color: '#204d47', marginBottom: '0.3rem', textAlign: 'center', lineHeight: '1.1', letterSpacing: '0.04em' }}>Iniciar sesión</h1>
           <form className="login-form" style={{ gap: '0.7rem' }} onSubmit={handleSubmit}>
             <label htmlFor="email" style={{ fontSize: '1.08rem', fontWeight: 700, color: '#357a6c', marginBottom: '0.1rem', letterSpacing: '0.02em' }}>Email</label>
             <input
@@ -90,11 +88,11 @@ function LoginForm({ showHomeButton = false }) {
               value={email}
               onChange={e => setEmail(e.target.value)}
               style={{
-                padding: '0.7rem',
-                fontSize: '1rem',
+                padding: '0.6rem',
+                fontSize: '0.95rem',
                 border: '1px solid #bbb',
                 borderRadius: '6px',
-                marginBottom: '0.3rem',
+                marginBottom: '0.2rem',
                 background: '#f7fafd',
                 fontWeight: 600,
                 color: '#204d47',
@@ -113,11 +111,11 @@ function LoginForm({ showHomeButton = false }) {
                 onChange={e => setPassword(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '0.7rem',
-                  fontSize: '1rem',
+                  padding: '0.6rem',
+                  fontSize: '0.95rem',
                   border: '1px solid #bbb',
                   borderRadius: '6px',
-                  marginBottom: '0.3rem',
+                  marginBottom: '0.2rem',
                   background: '#f7fafd',
                   fontWeight: 600,
                   color: '#204d47',
@@ -163,19 +161,19 @@ function LoginForm({ showHomeButton = false }) {
               }
             `}</style>
             {error && <div style={{ color: 'red', fontWeight: 700, marginBottom: '0.5rem', textAlign: 'center' }}>{error}</div>}
-            <div style={{ display: 'flex', flexDirection: 'row', gap: '1.2rem', marginTop: '1.5rem', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', marginTop: '1rem', justifyContent: 'center' }}>
               <button
                 type="submit"
                 className="login-btn login-btn-visual"
                 style={{
-                  fontSize: '1.1rem',
+                  fontSize: '1rem',
                   fontWeight: 700,
                   borderRadius: '8px',
                   letterSpacing: '0.04em',
                   background: '#204d47',
                   color: '#fff',
                   border: 'none',
-                  padding: '0.8rem 2.2rem',
+                  padding: '0.6rem 1.8rem',
                   boxShadow: '0 2px 8px 0 rgba(31,38,135,0.08)',
                   transition: 'background 0.2s, transform 0.2s',
                   opacity: loading ? 0.7 : 1,
@@ -193,9 +191,9 @@ function LoginForm({ showHomeButton = false }) {
                   color: '#fff',
                   border: '2px solid #357a6c',
                   borderRadius: '8px',
-                  padding: '0.8rem 2.2rem',
+                  padding: '0.6rem 1.8rem',
                   fontWeight: 'bold',
-                  fontSize: '1.1rem',
+                  fontSize: '1rem',
                   cursor: 'pointer',
                   boxShadow: '0 2px 8px 0 rgba(31,38,135,0.08)',
                   letterSpacing: '0.04em',
@@ -206,7 +204,7 @@ function LoginForm({ showHomeButton = false }) {
               </button>
             </div>
             {showHomeButton && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.8rem' }}>
                 <button
                   type="button"
                   className="login-btn login-btn-visual"
@@ -230,8 +228,8 @@ function LoginForm({ showHomeButton = false }) {
             )}
           </form>
         </div>
-        <div className="login-image-section" style={{ borderRadius: '0 24px 24px 0', minWidth: '340px', maxWidth: '480px', overflow: 'hidden', display: 'flex', alignItems: 'stretch', justifyContent: 'center', background: '#fff', padding: 0 }}>
-          <img src="/images/login.png" alt="Spa login" className="login-image" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '4px solid #fff', borderRadius: '0 24px 24px 0', objectFit: 'cover', objectPosition: 'center', width: '100%', height: '100%' }} />
+        <div className="login-image-section" style={{ borderRadius: '0 20px 20px 0', minWidth: '280px', maxWidth: '380px', overflow: 'hidden', display: 'flex', alignItems: 'stretch', justifyContent: 'center', background: '#fff', padding: 0 }}>
+          <img src="/images/login.png" alt="Spa login" className="login-image" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '4px solid #fff', borderRadius: '0 20px 20px 0', objectFit: 'cover', objectPosition: 'center', width: '100%', height: '100%' }} />
         </div>
       </div>
     </div>

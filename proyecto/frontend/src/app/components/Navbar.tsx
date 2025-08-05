@@ -52,7 +52,7 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
       </nav>
       {/* Bloque central: nombre/logo */}
       <div className="flex flex-1 justify-center items-center">
-        <span className="text-2xl font-bold tracking-widest text-gray-800">CHAPASPA'S</span>
+        <span className="text-2xl font-bold tracking-widest text-gray-800">ChapaSPA</span>
       </div>
       {/* Bloque derecho: usuario y acciones */}
       <div className="flex flex-1 items-center justify-end gap-6 min-w-[260px]">

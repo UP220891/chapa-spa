@@ -1,21 +1,21 @@
 "use client";
 // Tipos locales para evitar errores de compilación
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Navbar from '../app/components/Navbar';
-import { getClientes } from '../servicios/clientesService';
+import { useAuth } from '../hooks/useAuth';
+import { crearCita, editarCita, getCitas } from '../servicios/citasService';
+import { createCliente, getClientes } from '../servicios/clientesService';
 import { getServicios } from '../servicios/serviciosService';
-import { crearCita, editarCita, cancelarCita, getCitas } from '../servicios/citasService';
-import { getEmpleados, type Empleado } from '../servicios/empleadosService';
-import { obtenerEspecialidades } from '../servicios/especialidadService';
+import '../styles/notification.css';
+import { ProtectedRoute } from './ProtectedRoute';
 
 interface ClienteFormProps {
   onClose: () => void;
-  onClienteCreated?: () => void;
+  onClienteCreado?: () => void;
 }
 
 interface EmpleadoFormProps {
   onClose: () => void;
-  onEmpleadoCreated?: () => void;
 }
 
 // Tipos locales para evitar errores de compilación
@@ -36,11 +36,6 @@ interface Servicio {
   imagen?: string;
 }
 
-interface Especialidad {
-  id_especialidad: number;
-  nombre_especialidad: string;
-}
-
 interface Cita {
   id: number;
   cliente: string;
@@ -52,55 +47,442 @@ interface Cita {
   notas?: string;
   costo?: number;
   id_horario?: number;
-  id_servicio?: number;
 }
-
 // Formulario para crear empleado
-const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose, onEmpleadoCreated }) => {
+const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose }) => {
   const [form, setForm] = useState({
     nombre_empleado: '',
     email: '',
-    telefono: '',
     password: '',
-    id_especialidad: '',
-    rol: 'empleado'
+    telefono: '',
+    id_especialidad: 1,
+    rol: 'empleado' as 'empleado' | 'admin'  // Todos los empleados tienen rol empleado
   });
-  const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showNotification, setShowNotification] = useState(false);
+  const [especialidades, setEspecialidades] = useState<any[]>([]);
+  const [fieldErrors, setFieldErrors] = useState({
+    nombre_empleado: false,
+    email: false,
+    password: false,
+    telefono: false,
+    id_especialidad: false
+  });
 
   // Cargar especialidades al montar el componente
   useEffect(() => {
     async function cargarEspecialidades() {
       try {
+        const { obtenerEspecialidades } = await import('../servicios/especialidadService');
         const especialidadesData = await obtenerEspecialidades();
         setEspecialidades(especialidadesData);
       } catch (error) {
         console.error('Error al cargar especialidades:', error);
-        setError('Error al cargar especialidades');
       }
     }
     cargarEspecialidades();
   }, []);
 
+  // Función para validar campos en tiempo real
+  const validateField = (fieldName: string, value: any) => {
+    let isValid = true;
+    
+    switch (fieldName) {
+      case 'nombre_empleado':
+        isValid = value && value.trim().length > 0;
+        break;
+      case 'email':
+        isValid = value && value.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+        break;
+      case 'password':
+        isValid = value && value.length >= 6;
+        break;
+      case 'telefono':
+        isValid = value && value.trim().length > 0;
+        break;
+      case 'id_especialidad':
+        isValid = value && value > 0;
+        break;
+    }
+    
+    setFieldErrors(prev => ({
+      ...prev,
+      [fieldName]: !isValid
+    }));
+    
+    return isValid;
+  };
+
+  // Función para validar todos los campos
+  const validateAllFields = () => {
+    const errors = {
+      nombre_empleado: !form.nombre_empleado?.trim(),
+      email: !form.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email),
+      password: !form.password || form.password.length < 6,
+      telefono: !form.telefono?.trim(),
+      id_especialidad: !form.id_especialidad || form.id_especialidad < 1
+    };
+    
+    setFieldErrors(errors);
+    return !Object.values(errors).some(error => error);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!form.nombre_empleado || !form.email || !form.telefono || !form.password) {
-      setError('Por favor completa todos los campos obligatorios');
+    // Validar todos los campos antes de enviar
+    if (!validateAllFields()) {
+      setError('Por favor completa todos los campos correctamente');
       return;
     }
 
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      setError('Por favor ingresa un email válido');
-      return;
-    }
+    setLoading(true);
+    setError(null);
+    
+    console.log('📋 Datos del formulario antes del envío:', {
+      nombre_empleado: form.nombre_empleado,
+      email: form.email,
+      password: '***hidden***',
+      telefono: form.telefono,
+      id_especialidad: form.id_especialidad,
+      rol: form.rol
+    });
 
-    // Validar contraseña
-    if (form.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    try {
+      const { crearEmpleado } = await import('../servicios/empleadosService');
+      await crearEmpleado({
+        nombre_empleado: form.nombre_empleado.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        telefono: form.telefono.trim(),
+        id_especialidad: form.id_especialidad,
+        rol: form.rol
+      });
+      
+      // Mostrar notificación de éxito
+      setNotification({ type: 'success', message: 'Empleado guardado exitosamente' });
+      setShowNotification(true);
+      setTimeout(() => {
+        setShowNotification(false);
+        setTimeout(() => {
+          setNotification(null);
+          onClose();
+        }, 400);
+      }, 3000);
+    } catch (error: any) {
+      console.error('Error al guardar empleado:', error);
+      setError(error.message || 'Error al guardar el empleado');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {notification && (
+        <div
+          className={`notification-popup ${notification.type} ${showNotification ? 'show' : 'hide'}`}
+          style={{ position: 'fixed', top: 30, left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+        >
+          <span className="notification-icon">
+            {notification.type === 'error' ? '⚠️' : '✅'}
+          </span>
+          {notification.message}
+          <button
+            className="notification-close"
+            onClick={() => {
+              setShowNotification(false);
+              setTimeout(() => setNotification(null), 400);
+            }}
+            aria-label="Cerrar notificación"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <div style={{ 
+            background: '#fee', 
+            color: '#c53030', 
+            padding: '8px 12px', 
+            borderRadius: '4px', 
+            marginBottom: '16px',
+            border: '1px solid #feb2b2'
+          }}>
+            {error}
+          </div>
+        )}
+        
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Nombre completo</label>
+          <input 
+            type="text" 
+            value={form.nombre_empleado} 
+            onChange={e => {
+              const value = e.target.value;
+              setForm(f => ({ ...f, nombre_empleado: value }));
+              validateField('nombre_empleado', value);
+            }}
+            onBlur={e => validateField('nombre_empleado', e.target.value)}
+            required 
+            disabled={loading}
+            placeholder="Nombre completo del empleado"
+            style={{
+              borderColor: fieldErrors.nombre_empleado ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.nombre_empleado ? '#fed7d7' : '#fff'
+            }}
+          />
+          {fieldErrors.nombre_empleado && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              El nombre es obligatorio
+            </span>
+          )}
+        </div>
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Email</label>
+          <input 
+            type="email" 
+            value={form.email} 
+            onChange={e => {
+              const value = e.target.value;
+              setForm(f => ({ ...f, email: value }));
+              validateField('email', value);
+            }}
+            onBlur={e => validateField('email', e.target.value)}
+            required 
+            disabled={loading}
+            placeholder="correo@ejemplo.com"
+            style={{
+              borderColor: fieldErrors.email ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.email ? '#fed7d7' : '#fff'
+            }}
+          />
+          {fieldErrors.email && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              Ingresa un email válido
+            </span>
+          )}
+        </div>
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Contraseña</label>
+          <input 
+            type="password" 
+            value={form.password} 
+            onChange={e => {
+              const value = e.target.value;
+              setForm(f => ({ ...f, password: value }));
+              validateField('password', value);
+            }}
+            onBlur={e => validateField('password', e.target.value)}
+            required 
+            disabled={loading}
+            placeholder="Mínimo 6 caracteres"
+            minLength={6}
+            style={{
+              borderColor: fieldErrors.password ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.password ? '#fed7d7' : '#fff'
+            }}
+          />
+          {fieldErrors.password && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              La contraseña debe tener al menos 6 caracteres
+            </span>
+          )}
+        </div>
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Teléfono</label>
+          <input 
+            type="tel" 
+            value={form.telefono} 
+            onChange={e => {
+              const value = e.target.value;
+              setForm(f => ({ ...f, telefono: value }));
+              validateField('telefono', value);
+            }}
+            onBlur={e => validateField('telefono', e.target.value)}
+            required 
+            disabled={loading}
+            placeholder="Número de teléfono"
+            style={{
+              borderColor: fieldErrors.telefono ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.telefono ? '#fed7d7' : '#fff'
+            }}
+          />
+          {fieldErrors.telefono && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              El teléfono es obligatorio
+            </span>
+          )}
+        </div>
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Especialidad</label>
+          <select 
+            value={form.id_especialidad} 
+            onChange={e => {
+              const value = parseInt(e.target.value);
+              setForm(f => ({ ...f, id_especialidad: value }));
+              validateField('id_especialidad', value);
+            }}
+            onBlur={e => validateField('id_especialidad', parseInt(e.target.value))}
+            required 
+            disabled={loading}
+            style={{
+              borderColor: fieldErrors.id_especialidad ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.id_especialidad ? '#fed7d7' : '#fff'
+            }}
+          >
+            {especialidades.length > 0 ? (
+              especialidades.map(esp => (
+                <option key={esp.id_especialidad} value={esp.id_especialidad}>
+                  {esp.nombre_especialidad}
+                </option>
+              ))
+            ) : (
+              <>
+                <option value={1}>Masajes</option>
+                <option value={2}>Facial</option>
+                <option value={3}>Corporal</option>
+                <option value={4}>Relajación</option>
+              </>
+            )}
+          </select>
+          {fieldErrors.id_especialidad && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              Selecciona una especialidad
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+          <button 
+            type="button" 
+            className="btn-cancel-form" 
+            onClick={onClose} 
+            style={{ 
+              background: '#eee', 
+              color: '#204d47', 
+              borderRadius: '6px', 
+              padding: '8px 16px', 
+              border: 'none', 
+              fontWeight: 700 
+            }}
+            disabled={loading}
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            className="btn-submit" 
+            style={{ 
+              background: loading || Object.values(fieldErrors).some(error => error) ? '#ccc' : '#357a6c', 
+              color: 'white', 
+              borderRadius: '6px', 
+              padding: '8px 16px', 
+              border: 'none', 
+              fontWeight: 700,
+              cursor: loading || Object.values(fieldErrors).some(error => error) ? 'not-allowed' : 'pointer'
+            }}
+            disabled={loading || Object.values(fieldErrors).some(error => error)}
+          >
+            {loading ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+};
+// Formulario para crear cliente
+const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreado }) => {
+  const [form, setForm] = useState({
+    nombre: '',
+    apellido: '',
+    telefono: '',
+    correo: '',
+    fechaNacimiento: '',
+    password: ''
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showNotification, setShowNotification] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({
+    nombre: false,
+    apellido: false,
+    telefono: false,
+    correo: false,
+    fechaNacimiento: false,
+    password: false
+  });
+
+  // Función para validar campos en tiempo real
+  const validateField = (fieldName: string, value: any) => {
+    let isValid = true;
+    
+    switch (fieldName) {
+      case 'nombre':
+        isValid = value && value.trim().length > 0;
+        break;
+      case 'apellido':
+        isValid = value && value.trim().length > 0;
+        break;
+      case 'telefono':
+        isValid = value && value.trim().length > 0 && /^[\d\s\-\+\(\)]+$/.test(value.trim());
+        break;
+      case 'correo':
+        isValid = value && value.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+        break;
+      case 'fechaNacimiento':
+        if (value) {
+          const birthDate = new Date(value);
+          const today = new Date();
+          const age = today.getFullYear() - birthDate.getFullYear();
+          isValid = age >= 18 && age <= 100; // Validar edad entre 18 y 100 años
+        } else {
+          isValid = false;
+        }
+        break;
+      case 'password':
+        isValid = value && value.length >= 6;
+        break;
+    }
+    
+    setFieldErrors(prev => ({
+      ...prev,
+      [fieldName]: !isValid
+    }));
+    
+    return isValid;
+  };
+
+  // Función para validar todos los campos
+  const validateAllFields = () => {
+    const today = new Date();
+    const birthDate = form.fechaNacimiento ? new Date(form.fechaNacimiento) : null;
+    const age = birthDate ? today.getFullYear() - birthDate.getFullYear() : 0;
+    
+    const errors = {
+      nombre: !form.nombre?.trim(),
+      apellido: !form.apellido?.trim(),
+      telefono: !form.telefono?.trim() || !/^[\d\s\-\+\(\)]+$/.test(form.telefono.trim()),
+      correo: !form.correo?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo),
+      fechaNacimiento: !form.fechaNacimiento || !birthDate || age < 18 || age > 100,
+      password: !form.password || form.password.length < 6
+    };
+    
+    setFieldErrors(errors);
+    return !Object.values(errors).some(error => error);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    // Validar todos los campos antes de enviar
+    if (!validateAllFields()) {
+      setError('Por favor completa todos los campos correctamente');
       return;
     }
 
@@ -108,412 +490,223 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose, onEmpleadoCreated 
     setError(null);
 
     try {
-      // Usar el endpoint de autenticación para crear empleado con contraseña
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No estás autenticado. Inicia sesión para crear empleados.');
-        return;
-      }
-
-      const empleadoData = {
-        nombre: form.nombre_empleado.trim(),
-        email: form.email.trim(),
-        password: form.password,
-        telefono: form.telefono.trim(),
-        fechaNacimiento: '1990-01-01', // Fecha placeholder para empleados
-        rol: form.rol,
-        tipo_usuario: 'empleado'
-        // No enviamos id_especialidad por ahora, la tabla T_Empleados tiene estructura limitada
-      };
-
-      // Hacer request al endpoint de autenticación
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/register-empleado`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(empleadoData)
+      await createCliente({
+        nombre_cliente: form.nombre,
+        apellido_cliente: form.apellido,
+        telefono: form.telefono,
+        correo_electronico: form.correo,
+        fecha_nacimiento: form.fechaNacimiento,
+        password: form.password
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.mensaje || 'Error al crear empleado');
-      }
       
-      // Notificar éxito
-      alert('¡Empleado creado exitosamente!');
-      
-      // Llamar callback si existe
-      if (onEmpleadoCreated) {
-        onEmpleadoCreated();
-      }
-      
-      // Cerrar modal
-      onClose();
+      // Mostrar notificación de éxito
+      setNotification({ type: 'success', message: 'Cliente guardado exitosamente' });
+      setShowNotification(true);
+      setTimeout(() => {
+        setShowNotification(false);
+        setTimeout(() => {
+          setNotification(null);
+          // Recargar la lista de clientes si se proporciona la función
+          if (onClienteCreado) {
+            onClienteCreado();
+          }
+          onClose();
+        }, 400);
+      }, 3000);
     } catch (error: any) {
-      console.error('Error al crear empleado:', error);
-      setError(error.message || 'Error al crear empleado');
+      console.error('Error al guardar cliente:', error);
+      setError(error.message || 'Error al guardar el cliente');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      {error && (
-        <div style={{ 
-          background: '#fee2e2', 
-          color: '#dc2626', 
-          padding: '12px', 
-          borderRadius: '8px', 
-          marginBottom: '16px',
-          fontSize: '0.9rem',
-          fontWeight: 600
-        }}>
-          {error}
+    <>
+      {notification && (
+        <div
+          className={`notification-popup ${notification.type} ${showNotification ? 'show' : 'hide'}`}
+          style={{ position: 'fixed', top: 30, left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+        >
+          <span className="notification-icon">
+            {notification.type === 'error' ? '⚠️' : '✅'}
+          </span>
+          {notification.message}
+          <button
+            className="notification-close"
+            onClick={() => {
+              setShowNotification(false);
+              setTimeout(() => setNotification(null), 400);
+            }}
+            aria-label="Cerrar notificación"
+          >
+            &times;
+          </button>
         </div>
       )}
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <div style={{ 
+            background: '#fee', 
+            color: '#c53030', 
+            padding: '8px 12px', 
+            borderRadius: '4px', 
+            marginBottom: '16px',
+            border: '1px solid #feb2b2'
+          }}>
+            {error}
+          </div>
+        )}
       
       <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Nombre completo *
-        </label>
-        <input 
-          type="text" 
-          value={form.nombre_empleado} 
-          onChange={e => setForm(f => ({ ...f, nombre_empleado: e.target.value }))} 
-          required 
-          placeholder="Nombre del empleado"
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s'
-          }}
-          onFocus={e => e.target.style.borderColor = '#357a6c'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
-        />
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Email *
-        </label>
-        <input 
-          type="email" 
-          value={form.email} 
-          onChange={e => setForm(f => ({ ...f, email: e.target.value }))} 
-          required 
-          placeholder="correo@ejemplo.com"
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s'
-          }}
-          onFocus={e => e.target.style.borderColor = '#357a6c'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
-        />
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Teléfono *
-        </label>
-        <input 
-          type="tel" 
-          value={form.telefono} 
-          onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} 
-          required 
-          placeholder="4491234567"
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s'
-          }}
-          onFocus={e => e.target.style.borderColor = '#357a6c'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
-        />
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Contraseña *
-        </label>
-        <input 
-          type="password" 
-          value={form.password} 
-          onChange={e => setForm(f => ({ ...f, password: e.target.value }))} 
-          required 
-          placeholder="Mínimo 6 caracteres"
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s'
-          }}
-          onFocus={e => e.target.style.borderColor = '#357a6c'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
-        />
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Especialidad (opcional)
-        </label>
-        <select 
-          value={form.id_especialidad} 
-          onChange={e => setForm(f => ({ ...f, id_especialidad: e.target.value }))}
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            backgroundColor: '#fff'
-          }}
-          onFocus={e => e.target.style.borderColor = '#357a6c'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
-        >
-          <option value="">Selecciona una especialidad</option>
-          {especialidades.map(especialidad => (
-            <option key={especialidad.id_especialidad} value={especialidad.id_especialidad}>
-              {especialidad.nombre_especialidad}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Rol
-        </label>
-        <select 
-          value={form.rol} 
-          onChange={e => setForm(f => ({ ...f, rol: e.target.value }))}
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            backgroundColor: '#fff'
-          }}
-          onFocus={e => e.target.style.borderColor = '#357a6c'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
-        >
-          <option value="empleado">Empleado</option>
-          <option value="admin">Administrador</option>
-        </select>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
-        <button 
-          type="button" 
-          className="btn-cancel-form" 
-          onClick={onClose} 
-          disabled={loading}
-          style={{ 
-            background: '#eee', 
-            color: '#204d47', 
-            borderRadius: '8px', 
-            padding: '12px 24px', 
-            border: 'none', 
-            fontWeight: 700,
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1,
-            fontSize: '1rem',
-            transition: 'all 0.2s'
-          }}
-        >
-          Cancelar
-        </button>
-        <button 
-          type="submit" 
-          className="btn-submit" 
-          disabled={loading}
-          style={{ 
-            background: loading ? '#9ca3af' : '#357a6c', 
-            color: 'white', 
-            borderRadius: '8px', 
-            padding: '12px 24px', 
-            border: 'none', 
-            fontWeight: 700,
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '1rem',
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          {loading ? (
-            <>
-              <div style={{ 
-                width: '16px', 
-                height: '16px', 
-                border: '2px solid #fff', 
-                borderTop: '2px solid transparent', 
-                borderRadius: '50%', 
-                animation: 'spin 1s linear infinite' 
-              }}></div>
-              Guardando...
-            </>
-          ) : (
-            'Guardar Empleado'
-          )}
-        </button>
-      </div>
-    </form>
-  );
-};
-// Formulario para crear cliente
-const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreated }) => {
-  const [form, setForm] = useState({
-    nombre: '',
-    apellido: '',
-    telefono: '',
-    correo: ''
-  });
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!form.nombre || !form.apellido || !form.telefono || !form.correo) {
-      alert('Completa todos los campos');
-      return;
-    }
-    try {
-      // Crear cliente usando el servicio (necesitarás implementar crearCliente)
-      // await crearCliente(form);
-      alert('Cliente guardado exitosamente');
-      
-      // Llamar callback si existe
-      if (onClienteCreated) {
-        onClienteCreated();
-      }
-      
-      onClose();
-    } catch (error) {
-      alert('Error al guardar el cliente');
-    }
-  };
-  return (
-    <form onSubmit={handleSubmit}>
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Nombre *
-        </label>
+        <label>Nombre</label>
         <input 
           type="text" 
           value={form.nombre} 
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} 
-          required 
-          placeholder="Nombre del cliente"
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            backgroundColor: '#fff'
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, nombre: value }));
+            validateField('nombre', value);
           }}
-          onFocus={e => e.target.style.borderColor = '#7c3aed'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
+          onBlur={e => validateField('nombre', e.target.value)}
+          required 
+          disabled={loading}
+          style={{
+            borderColor: fieldErrors.nombre ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.nombre ? '#fed7d7' : '#fff'
+          }}
         />
+        {fieldErrors.nombre && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            El nombre es obligatorio
+          </span>
+        )}
       </div>
       <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Apellido *
-        </label>
+        <label>Apellido</label>
         <input 
           type="text" 
           value={form.apellido} 
-          onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))} 
-          required 
-          placeholder="Apellido del cliente"
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            backgroundColor: '#fff'
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, apellido: value }));
+            validateField('apellido', value);
           }}
-          onFocus={e => e.target.style.borderColor = '#7c3aed'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
+          onBlur={e => validateField('apellido', e.target.value)}
+          required 
+          disabled={loading}
+          style={{
+            borderColor: fieldErrors.apellido ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.apellido ? '#fed7d7' : '#fff'
+          }}
         />
+        {fieldErrors.apellido && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            El apellido es obligatorio
+          </span>
+        )}
       </div>
       <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Teléfono *
-        </label>
+        <label>Teléfono</label>
         <input 
           type="tel" 
           value={form.telefono} 
-          onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} 
-          required 
-          placeholder="Teléfono del cliente"
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            backgroundColor: '#fff'
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, telefono: value }));
+            validateField('telefono', value);
           }}
-          onFocus={e => e.target.style.borderColor = '#7c3aed'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
+          onBlur={e => validateField('telefono', e.target.value)}
+          required 
+          disabled={loading}
+          style={{
+            borderColor: fieldErrors.telefono ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.telefono ? '#fed7d7' : '#fff'
+          }}
         />
+        {fieldErrors.telefono && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            Ingresa un número de teléfono válido
+          </span>
+        )}
       </div>
       <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: '#204d47' }}>
-          Correo electrónico *
-        </label>
+        <label>Correo</label>
         <input 
           type="email" 
           value={form.correo} 
-          onChange={e => setForm(f => ({ ...f, correo: e.target.value }))} 
-          required 
-          placeholder="correo@ejemplo.com"
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: '2px solid #e0f1ee', 
-            borderRadius: '8px',
-            fontSize: '1rem',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            backgroundColor: '#fff'
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, correo: value }));
+            validateField('correo', value);
           }}
-          onFocus={e => e.target.style.borderColor = '#7c3aed'}
-          onBlur={e => e.target.style.borderColor = '#e0f1ee'}
+          onBlur={e => validateField('correo', e.target.value)}
+          required 
+          disabled={loading}
+          style={{
+            borderColor: fieldErrors.correo ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.correo ? '#fed7d7' : '#fff'
+          }}
         />
+        {fieldErrors.correo && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            Ingresa un email válido
+          </span>
+        )}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+      <div className="form-group" style={{ marginBottom: '16px' }}>
+        <label>Fecha de Nacimiento</label>
+        <input 
+          type="date" 
+          value={form.fechaNacimiento} 
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, fechaNacimiento: value }));
+            validateField('fechaNacimiento', value);
+          }}
+          onBlur={e => validateField('fechaNacimiento', e.target.value)}
+          required 
+          disabled={loading}
+          style={{
+            borderColor: fieldErrors.fechaNacimiento ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.fechaNacimiento ? '#fed7d7' : '#fff'
+          }}
+          max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+          min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
+        />
+        {fieldErrors.fechaNacimiento && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            Debe ser mayor de 18 años
+          </span>
+        )}
+      </div>
+      <div className="form-group" style={{ marginBottom: '16px' }}>
+        <label>Contraseña</label>
+        <input 
+          type="password" 
+          value={form.password} 
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, password: value }));
+            validateField('password', value);
+          }}
+          onBlur={e => validateField('password', e.target.value)}
+          required 
+          disabled={loading}
+          placeholder="Contraseña para acceder al sistema"
+          minLength={6}
+          style={{
+            borderColor: fieldErrors.password ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.password ? '#fed7d7' : '#fff'
+          }}
+        />
+        {fieldErrors.password && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            La contraseña debe tener al menos 6 caracteres
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
         <button 
           type="button" 
           className="btn-cancel-form" 
@@ -521,14 +714,12 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreated }) 
           style={{ 
             background: '#eee', 
             color: '#204d47', 
-            borderRadius: '8px', 
-            padding: '12px 24px', 
+            borderRadius: '6px', 
+            padding: '8px 16px', 
             border: 'none', 
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontSize: '1rem',
-            transition: 'all 0.2s'
+            fontWeight: 700 
           }}
+          disabled={loading}
         >
           Cancelar
         </button>
@@ -536,23 +727,21 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreated }) 
           type="submit" 
           className="btn-submit" 
           style={{ 
-            background: '#7c3aed', 
+            background: loading || Object.values(fieldErrors).some(error => error) ? '#ccc' : '#357a6c', 
             color: 'white', 
-            borderRadius: '8px', 
-            padding: '12px 24px', 
+            borderRadius: '6px', 
+            padding: '8px 16px', 
             border: 'none', 
             fontWeight: 700,
-            cursor: 'pointer',
-            fontSize: '1rem',
-            transition: 'all 0.2s'
+            cursor: loading || Object.values(fieldErrors).some(error => error) ? 'not-allowed' : 'pointer'
           }}
-          onMouseEnter={e => e.currentTarget.style.background = '#6d28d9'}
-          onMouseLeave={e => e.currentTarget.style.background = '#7c3aed'}
+          disabled={loading || Object.values(fieldErrors).some(error => error)}
         >
-          Guardar Cliente
+          {loading ? 'Guardando...' : 'Guardar'}
         </button>
       </div>
     </form>
+    </>
   );
 }
 // Componente separado para el modal de edición de cita (solo estado)
@@ -626,7 +815,7 @@ function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, ser
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
         <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ color: '#1a202c', fontWeight: 900, fontSize: '1.6rem', margin: 0, textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ color: '#ffffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
             Editar cita
           </h3>
           <button className="close-btn" onClick={onClose} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
@@ -686,15 +875,6 @@ function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, ser
             <label>Notas</label>
             <textarea value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} rows={2} />
           </div>
-          <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label>Estado</label>
-            <select value={form.estado} onChange={e => setForm(f => ({ ...f, estado: Number(e.target.value) }))} required style={{ marginBottom: '8px', width: '100%' }}>
-              <option value={1}>Agendada</option>
-              <option value={2}>Completada</option>
-              <option value={3}>Cancelada</option>
-              <option value={4}>No asistió</option>
-            </select>
-          </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button type="button" className="btn-cancel-form" onClick={onClose} style={{ background: '#eee', color: '#204d47', borderRadius: '6px', padding: '8px 16px', border: 'none', fontWeight: 700 }}>Cancelar</button>
             <button type="submit" className="btn-submit" style={{ background: '#357a6c', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none', fontWeight: 700 }}>Guardar</button>
@@ -706,57 +886,29 @@ function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, ser
 }
 
 const AdminCalendar = () => {
+  const { user, isAuthenticated } = useAuth();
+
+  return (
+    <ProtectedRoute>
+      <AdminCalendarContent />
+    </ProtectedRoute>
+  );
+};
+
+const AdminCalendarContent = () => {
   const [showClientForm, setShowClientForm] = useState(false);
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
-  const [empleados, setEmpleados] = useState<Empleado[]>([]);
-  const [showEmpleadosList, setShowEmpleadosList] = useState(false);
-  const [showClientesList, setShowClientesList] = useState(false);
-  const [vieneDeGestionEmpleados, setVieneDeGestionEmpleados] = useState(false);
-  
   const handleNewAppointment = () => setShowAppointmentForm(true);
   const handleNewClient = () => setShowClientForm(true);
   const handleNewEmployee = () => setShowEmployeeForm(true);
-
-  // Función para recargar empleados
-  const recargarEmpleados = async () => {
-    try {
-      const empleadosData = await getEmpleados();
-      setEmpleados(empleadosData);
-    } catch (error) {
-      console.error('Error al cargar empleados:', error);
-    }
-  };
-
-  // Función para recargar empleados y volver al modal de gestión
-  const recargarEmpleadosYVolverAGestion = async () => {
-    try {
-      const empleadosData = await getEmpleados();
-      setEmpleados(empleadosData);
-      // Volver a abrir el modal de gestión de empleados
-      setShowEmpleadosList(true);
-    } catch (error) {
-      console.error('Error al cargar empleados:', error);
-    }
-  };
-
-  // Función para recargar clientes
-  const recargarClientes = async () => {
-    try {
-      const clientesData = await getClientes();
-      setClientes(clientesData);
-    } catch (error) {
-      console.error('Error al cargar clientes:', error);
-    }
-  };
   // Utilidades para el calendario
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 1)); // Agosto 2025
-   
+  const [currentDate, setCurrentDate] = useState(new Date());
+
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
-    
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
@@ -766,18 +918,15 @@ const AdminCalendar = () => {
       days.push({ date: new Date(year, month, i - startingDayOfWeek + 1), isCurrentMonth: false });
     }
     for (let day = 1; day <= daysInMonth; day++) {
-      const dayDate = new Date(year, month, day);
-      days.push({ date: dayDate, isCurrentMonth: true });
+      days.push({ date: new Date(year, month, day), isCurrentMonth: true });
     }
     const totalDays = days.length;
     for (let i = 1; totalDays + i <= 42; i++) {
       days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
     }
-    
     return days;
   };
 
-  
   const days = getDaysInMonth(currentDate);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -791,15 +940,14 @@ const AdminCalendar = () => {
 
   const getCitasForDate = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
-    
-    const citasFiltradas = citas.filter(cita => {
+    return citas.filter(cita => {
       // Usar la fecha original del backend para comparar
       let fechaOriginal = '';
       if (cita.fecha && typeof cita.fecha === 'string') {
         // Si la fecha está en formato DD/MM/YYYY, convertir a ISO para comparar
         if (/^\d{2}\/\d{2}\/\d{4}$/.test(cita.fecha)) {
           const [d, m, y] = cita.fecha.split('/');
-          fechaOriginal = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+          fechaOriginal = `${y}-${m}-${d}`;
         } else if (cita.fecha.includes('T')) {
           fechaOriginal = cita.fecha.split('T')[0];
         } else if (/^\d{4}-\d{2}-\d{2}$/.test(cita.fecha)) {
@@ -808,13 +956,8 @@ const AdminCalendar = () => {
           fechaOriginal = cita.fecha.split(' ')[0];
         }
       }
-      
-      const coincide = fechaOriginal === dateString;
-      
-      return coincide;
+      return fechaOriginal === dateString;
     });
-    
-    return citasFiltradas;
   };
   const [horarios, setHorarios] = useState<{ id_horario: number; hora_inicio: string; hora_fin: string; dia: string }[]>([]);
   const [errorHorarios, setErrorHorarios] = useState<string | null>(null);
@@ -839,6 +982,16 @@ const AdminCalendar = () => {
   // Nuevo estado para mostrar el modal de cita del día
   const [showDayCitasModal, setShowDayCitasModal] = useState(false);
   const [citasDelDia, setCitasDelDia] = useState<Cita[]>([]);
+
+  // Función para recargar clientes
+  const recargarClientes = async () => {
+    try {
+      const clientesData = await getClientes();
+      setClientes(clientesData);
+    } catch (error) {
+      console.error('Error al recargar clientes:', error);
+    }
+  };
 
   // Obtener las horas disponibles para el día seleccionado desde la base de datos
   let horasDisponibles: { id_horario: number; hora_inicio: string; hora_fin: string; dia: string }[] = [];
@@ -925,6 +1078,7 @@ const AdminCalendar = () => {
           const fecha = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
           const hora = horaSQL;
           const fechaCita = `${fecha} ${hora}`;
+          console.log('Fecha enviada a backend:', fechaCita);
           return fechaCita;
         })(),
         notas: newAppointment.notas,
@@ -932,6 +1086,7 @@ const AdminCalendar = () => {
         id_estado_cita: 1, // SIEMPRE 'Agendada' por defecto
         id_horario: horarioObj.id_horario
       };
+      console.log('Objeto enviado a backend:', citaNueva);
       await crearCita(citaNueva);
       // Recargar citas
       const citasActualizadas = await getCitas();
@@ -947,7 +1102,6 @@ const AdminCalendar = () => {
   const mapearCita = (c: any): Cita => {
     // Buscar la propiedad correcta para la fecha y el costo
     let fechaRaw = c.fecha || c.fecha_cita || c.fecha_cita_inicio || c.fecha_inicio || '';
-    
     // Formatear fecha a DD/MM/YYYY
     let fechaFormateada = '';
     if (typeof fechaRaw === 'string' && fechaRaw.length >= 10) {
@@ -964,11 +1118,9 @@ const AdminCalendar = () => {
       fechaFormateada = fechaRaw;
     }
     const costo = c.costo ?? c.costo_total ?? 0;
-    
-    // Estado: Usar id_estado_cita como fuente principal (es lo que devuelve el backend)
-    let estadoRaw = c.id_estado_cita ?? c.estado ?? c.estado_cita ?? c.nombre_estado_cita ?? c.estadoCita ?? c.estado_nombre ?? '';
+    // Estado: usar c.estado o c.estado_cita o c.nombre_estado_cita
+    let estadoRaw = c.estado ?? c.estado_cita ?? c.nombre_estado_cita ?? '';
     let estadoFinal = '';
-    
     if (typeof estadoRaw === 'number') {
       switch (estadoRaw) {
         case 1: estadoFinal = 'Agendada'; break;
@@ -995,7 +1147,6 @@ const AdminCalendar = () => {
     } else {
       estadoFinal = 'Agendada';
     }
-    
     // Limpiar nombre de servicio (quitar tabuladores y espacios extra)
     let servicioLimpio = c.nombre_servicio;
     if (typeof servicioLimpio === 'string') {
@@ -1028,8 +1179,7 @@ const AdminCalendar = () => {
         }
       }
     }
-    
-    const citaMapeada = {
+    return {
       id: c.id_cita,
       cliente: c.nombre_cliente,
       servicio: servicioLimpio,
@@ -1039,11 +1189,8 @@ const AdminCalendar = () => {
       telefono: c.telefono,
       notas: c.notas,
       costo: costo,
-      id_horario: c.id_horario, // Agregado para mostrar hora real en el modal
-      id_servicio: c.id_servicio // Agregado para el formulario de edición
+      id_horario: c.id_horario // Agregado para mostrar hora real en el modal
     };
-    
-    return citaMapeada;
   };
 
   useEffect(() => {
@@ -1085,131 +1232,48 @@ const AdminCalendar = () => {
     }
   }, [showAppointmentForm]);
 
-  // Cargar empleados al montar el componente
-  useEffect(() => {
-    recargarEmpleados();
-  }, []);
-
-  // Cargar clientes al montar el componente
-  useEffect(() => {
-    recargarClientes();
-  }, []);
-
   // Cargar citas al montar el componente
   useEffect(() => {
     async function cargarCitasIniciales() {
       try {
         const citasActualizadas = await getCitas();
-        
-        const citasMapeadas = citasActualizadas.map(mapearCita);
-        
-        setCitas(citasMapeadas);
+        setCitas(citasActualizadas.map(mapearCita));
       } catch (error) {
-        console.error('Error cargando citas iniciales:', error);
+        // Puedes mostrar un error si lo necesitas
       }
     }
     cargarCitasIniciales();
   }, []);
 
-  // Actualizar las citas del día cuando cambien las citas globales o el modal se abra
-  useEffect(() => {
-    if (showDayCitasModal && selectedDate) {
-      const citasDiaActualizadas = getCitasForDate(selectedDate);
-      setCitasDelDia(citasDiaActualizadas);
-    }
-  }, [showDayCitasModal, selectedDate, citas]); // Agregué 'citas' de vuelta para sincronización
-
   // Al hacer click en un día, mostrar el modal con las citas de ese día
   const handleDayClick = async (date: Date) => {
     if (!date) return;
-    
     setSelectedDate(date);
-    // Recargar citas antes de mostrar el modal para tener los datos más actualizados
-    try {
-      const citasActualizadas = await getCitas();
-      const citasMapeadas = citasActualizadas.map(mapearCita);
-      setCitas(citasMapeadas);
-      const citasDia = getCitasForDate(date);
-      setCitasDelDia(citasDia);
-    } catch (error) {
-      console.error('Error al cargar citas:', error);
-      // Si hay error, usar las citas que ya tenemos
-      const citasDia = getCitasForDate(date);
-      setCitasDelDia(citasDia);
-    }
+    // Recargar citas antes de mostrar el modal
+    const citasActualizadas = await getCitas();
+    const citasMapeadas = citasActualizadas.map(mapearCita);
+    setCitas(citasMapeadas);
+    const citasDia = getCitasForDate(date);
+    console.log('Citas en el estado:', citasMapeadas);
+    console.log('Fecha seleccionada:', date.toISOString().split('T')[0]);
+    setCitasDelDia(citasDia);
     setShowDayCitasModal(true);
   };
 
   return (
     <>
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
       <Navbar />
       <div className="admin-calendar-container">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '32px 0' }}>
           <div>
-            <button 
-              className="btn-new-appointment" 
-              style={{ 
-                background: '#4f46e5', 
-                color: 'white', 
-                borderRadius: '8px', 
-                padding: '0.8rem 2rem', 
-                border: 'none', 
-                fontWeight: 700, 
-                fontSize: '1.1rem', 
-                marginRight: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }} 
-              onClick={handleNewAppointment}
-              onMouseEnter={e => e.currentTarget.style.background = '#3f37d9'}
-              onMouseLeave={e => e.currentTarget.style.background = '#4f46e5'}
-            >
+            <button className="btn-new-appointment" style={{ background: '#4f46e5', color: 'white', borderRadius: '8px', padding: '0.8rem 2rem', border: 'none', fontWeight: 700, fontSize: '1.1rem', marginRight: '12px' }} onClick={handleNewAppointment}>
               + Nueva Cita
             </button>
-            <button 
-              className="btn-list-employees" 
-              style={{ 
-                background: '#059669', 
-                color: 'white', 
-                borderRadius: '8px', 
-                padding: '0.8rem 2rem', 
-                border: 'none', 
-                fontWeight: 700, 
-                fontSize: '1.1rem', 
-                marginRight: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }} 
-              onClick={() => setShowEmpleadosList(true)}
-              onMouseEnter={e => e.currentTarget.style.background = '#047857'}
-              onMouseLeave={e => e.currentTarget.style.background = '#059669'}
-            >
-              👥 Gestionar Empleados ({empleados.length})
+            <button className="btn-new-employee" style={{ background: '#357a6c', color: 'white', borderRadius: '8px', padding: '0.8rem 2rem', border: 'none', fontWeight: 700, fontSize: '1.1rem', marginRight: '12px' }} onClick={handleNewEmployee}>
+              + Nuevo Empleado
             </button>
-            <button 
-              className="btn-list-clients" 
-              style={{ 
-                background: '#7c3aed', 
-                color: 'white', 
-                borderRadius: '8px', 
-                padding: '0.8rem 2rem', 
-                border: 'none', 
-                fontWeight: 700, 
-                fontSize: '1.1rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }} 
-              onClick={() => setShowClientesList(true)}
-              onMouseEnter={e => e.currentTarget.style.background = '#6d28d9'}
-              onMouseLeave={e => e.currentTarget.style.background = '#7c3aed'}
-            >
-              👤 Gestionar Clientes ({clientes.length})
+            <button className="btn-new-client" style={{ background: '#204d47', color: 'white', borderRadius: '8px', padding: '0.8rem 2rem', border: 'none', fontWeight: 700, fontSize: '1.1rem' }} onClick={handleNewClient}>
+              + Nuevo Cliente
             </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -1270,7 +1334,6 @@ const AdminCalendar = () => {
             {days.map((day, index) => {
               const citasForDay = getCitasForDate(day.date);
               const isToday = day.date.toDateString() === new Date().toDateString();
-              
               return (
                 <div
                   key={index}
@@ -1295,7 +1358,7 @@ const AdminCalendar = () => {
         <div className="modal-overlay" onClick={handleCloseAppointmentForm}>
           <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
             <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#1a202c', fontWeight: 900, fontSize: '1.6rem', margin: 0, textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ color: '#ffffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
                 Nueva cita para el día {selectedDate ? selectedDate.toLocaleDateString('es-MX') : ''}
               </h3>
               <button className="close-btn" onClick={handleCloseAppointmentForm} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
@@ -1407,38 +1470,26 @@ const AdminCalendar = () => {
       {showClientForm && (
         <div className="modal-overlay" onClick={() => setShowClientForm(false)}>
           <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: '12px 12px 0 0', padding: '0' }}>
+            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.3rem', margin: 0 }}>Nuevo Cliente</h3>
               <button className="close-btn" onClick={() => setShowClientForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
             </div>
             <ClienteForm 
               onClose={() => setShowClientForm(false)} 
-              onClienteCreated={recargarClientes}
+              onClienteCreado={recargarClientes}
             />
           </div>
         </div>
       )}
       {/* Modal para nuevo empleado */}
       {showEmployeeForm && (
-        <div className="modal-overlay" onClick={() => {
-          setShowEmployeeForm(false);
-          setVieneDeGestionEmpleados(false);
-        }}>
-          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: '12px 12px 0 0', padding: '0' }}>
-              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.4rem', margin: 0 }}>👤 Nuevo Empleado</h3>
-              <button className="close-btn" onClick={() => {
-                setShowEmployeeForm(false);
-                setVieneDeGestionEmpleados(false);
-              }} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
+        <div className="modal-overlay" onClick={() => setShowEmployeeForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.3rem', margin: 0 }}>Nuevo Empleado</h3>
+              <button className="close-btn" onClick={() => setShowEmployeeForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
             </div>
-            <EmpleadoForm 
-              onClose={() => {
-                setShowEmployeeForm(false);
-                setVieneDeGestionEmpleados(false);
-              }} 
-              onEmpleadoCreated={vieneDeGestionEmpleados ? recargarEmpleadosYVolverAGestion : recargarEmpleados}
-            />
+            <EmpleadoForm onClose={() => setShowEmployeeForm(false)} />
           </div>
         </div>
       )}
@@ -1448,44 +1499,10 @@ const AdminCalendar = () => {
           editAppointment={editAppointment}
           onClose={() => setShowEditForm(false)}
           onSave={async (nuevaCita) => {
-            try {
-              // Actualizar en el backend
-              await editarCita(editAppointment.id, nuevaCita);
-              
-              // Recargar todas las citas desde el backend para asegurar sincronización
-              const citasActualizadas = await getCitas();
-              const citasMapeadas = citasActualizadas.map(mapearCita);
-              setCitas(citasMapeadas);
-              
-              // Si el modal de citas del día está abierto, actualizar también esas citas
-              if (showDayCitasModal && selectedDate) {
-                const citasDiaActualizadas = citasMapeadas.filter(citaMappeada => {
-                  let fechaOriginal = '';
-                  if (citaMappeada.fecha && typeof citaMappeada.fecha === 'string') {
-                    // Si la fecha está en formato DD/MM/YYYY, convertir a ISO para comparar
-                    if (/^\d{2}\/\d{2}\/\d{4}$/.test(citaMappeada.fecha)) {
-                      const [d, m, y] = citaMappeada.fecha.split('/');
-                      fechaOriginal = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-                    } else if (citaMappeada.fecha.includes('T')) {
-                      fechaOriginal = citaMappeada.fecha.split('T')[0];
-                    } else if (/^\d{4}-\d{2}-\d{2}$/.test(citaMappeada.fecha)) {
-                      fechaOriginal = citaMappeada.fecha;
-                    } else {
-                      fechaOriginal = citaMappeada.fecha.split(' ')[0];
-                    }
-                  }
-                  return fechaOriginal === selectedDate.toISOString().split('T')[0];
-                });
-                setCitasDelDia(citasDiaActualizadas);
-              }
-              
-              // Cerrar el modal de edición
-              setShowEditForm(false);
-            } catch (error) {
-              console.error('Error al editar cita:', error);
-              const errorMessage = error instanceof Error ? error.message : String(error);
-              alert(`Error al editar la cita: ${errorMessage}`);
-            }
+            await editarCita(editAppointment.id, nuevaCita);
+            const citasActualizadas = await getCitas();
+            setCitas(citasActualizadas.map(mapearCita));
+            setShowEditForm(false);
           }}
           horasDisponibles={horarios}
           servicios={servicios}
@@ -1497,7 +1514,7 @@ const AdminCalendar = () => {
         <div className="modal-overlay" onClick={() => setShowDayCitasModal(false)}>
           <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
             <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#1a202c', fontWeight: 900, fontSize: '1.6rem', margin: 0, textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ color: '#ffffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
                 Citas para el día {selectedDate ? selectedDate.toLocaleDateString('es-MX') : ''}
               </h3>
               <button className="close-btn" onClick={() => setShowDayCitasModal(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
@@ -1536,99 +1553,30 @@ const AdminCalendar = () => {
                         <strong style={{ color: '#204d47' }}>Costo:</strong> ${cita.costo}<br />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                        <button style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 16px', fontWeight: 700, cursor: 'pointer', marginBottom: '4px' }} title="Editar cita (modifica datos)" onClick={() => { 
-                          // Buscar el servicio para obtener su ID
-                          const servicio = servicios.find(s => s.nombre === cita.servicio);
-                          const citaConServicioId = {
-                            ...cita,
-                            id_servicio: servicio ? servicio.id : undefined
-                          };
-                          setEditAppointment(citaConServicioId); 
-                          setShowEditForm(true); 
-                          setShowDayCitasModal(false); 
-                        }}>Editar</button>
+                        <button style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 16px', fontWeight: 700, cursor: 'pointer', marginBottom: '4px' }} title="Editar cita (modifica datos)" onClick={() => { setEditAppointment(cita); setShowEditForm(true); setShowDayCitasModal(false); }}>Editar</button>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '16px 0 0 0', justifyContent: 'center' }}>
-                      {[
-                        { label: 'Agendada', value: 1, bgColor: '#4f46e5', bgColorInactive: '#e0e7ff' }, 
-                        { label: 'Completada', value: 2, bgColor: '#10b981', bgColorInactive: '#d1fae5' }, 
-                        { label: 'Cancelada', value: 3, bgColor: '#ef4444', bgColorInactive: '#fee2e2' }, 
-                        { label: 'No asistió', value: 4, bgColor: '#f59e0b', bgColorInactive: '#fef3c7' }
-                      ].map(estado => (
+                      {[{ label: 'Agendada', value: 1 }, { label: 'Completada', value: 2 }, { label: 'Cancelada', value: 3 }, { label: 'No asistió', value: 4 }].map(estado => (
                         <button
                           key={estado.value}
                           type="button"
                           style={{
-                            background: (cita.estado === estado.label) ? estado.bgColor : estado.bgColorInactive,
-                            color: (cita.estado === estado.label) ? '#fff' : '#374151',
-                            borderRadius: '8px',
-                            padding: '8px 16px',
-                            border: (cita.estado === estado.label) ? `2px solid ${estado.bgColor}` : '2px solid transparent',
-                            fontWeight: (cita.estado === estado.label) ? 800 : 600,
+                            background: (cita.estado === estado.label) ? '#357a6c' : '#eee',
+                            color: (cita.estado === estado.label) ? '#fff' : '#204d47',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            border: 'none',
+                            fontWeight: 700,
                             cursor: 'pointer',
-                            boxShadow: (cita.estado === estado.label) ? '0 4px 12px rgba(0,0,0,0.15)' : '0 1px 3px rgba(0,0,0,0.1)',
-                            transition: 'all 0.2s ease',
-                            transform: (cita.estado === estado.label) ? 'scale(1.05)' : 'scale(1)',
-                            fontSize: '0.9rem'
-                          }}
-                          onMouseEnter={(e) => {
-                            if (cita.estado !== estado.label) {
-                              e.currentTarget.style.background = estado.bgColor;
-                              e.currentTarget.style.color = '#fff';
-                              e.currentTarget.style.transform = 'scale(1.02)';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (cita.estado !== estado.label) {
-                              e.currentTarget.style.background = estado.bgColorInactive;
-                              e.currentTarget.style.color = '#374151';
-                              e.currentTarget.style.transform = 'scale(1)';
-                            }
+                            boxShadow: (cita.estado === estado.label) ? '0 2px 8px rgba(31,38,135,0.13)' : 'none'
                           }}
                           title={estado.label === 'Cancelada' ? 'Solo cambia el estado, no elimina la cita' : `Cambiar estado a ${estado.label}`}
                           onClick={async () => {
-                            // Si ya es el estado actual, no hacer nada
-                            if (cita.estado === estado.label) {
-                              return;
-                            }
-                            
-                            try {
-                              // Actualizar en el backend
-                              await editarCita(cita.id, { id_estado_cita: estado.value });
-                              
-                              // Recargar todas las citas desde el backend para asegurar sincronización
-                              const citasActualizadas = await getCitas();
-                              const citasMapeadas = citasActualizadas.map(mapearCita);
-                              setCitas(citasMapeadas);
-                              
-                              // Actualizar las citas del día con los datos frescos
-                              if (selectedDate) {
-                                const citasDiaActualizadas = citasMapeadas.filter(citaMappeada => {
-                                  let fechaOriginal = '';
-                                  if (citaMappeada.fecha && typeof citaMappeada.fecha === 'string') {
-                                    // Si la fecha está en formato DD/MM/YYYY, convertir a ISO para comparar
-                                    if (/^\d{2}\/\d{2}\/\d{4}$/.test(citaMappeada.fecha)) {
-                                      const [d, m, y] = citaMappeada.fecha.split('/');
-                                      fechaOriginal = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-                                    } else if (citaMappeada.fecha.includes('T')) {
-                                      fechaOriginal = citaMappeada.fecha.split('T')[0];
-                                    } else if (/^\d{4}-\d{2}-\d{2}$/.test(citaMappeada.fecha)) {
-                                      fechaOriginal = citaMappeada.fecha;
-                                    } else {
-                                      fechaOriginal = citaMappeada.fecha.split(' ')[0];
-                                    }
-                                  }
-                                  return fechaOriginal === selectedDate.toISOString().split('T')[0];
-                                });
-                                setCitasDelDia(citasDiaActualizadas);
-                              }
-                              
-                            } catch (error) {
-                              console.error('Error al cambiar estado:', error);
-                              const errorMessage = error instanceof Error ? error.message : String(error);
-                              alert(`Error al cambiar el estado de la cita: ${errorMessage}`);
-                            }
+                            await editarCita(cita.id, { id_estado_cita: estado.value });
+                            const citasActualizadas = await getCitas();
+                            setCitas(citasActualizadas.map(mapearCita));
+                            setShowDayCitasModal(false);
                           }}
                         >
                           {estado.label}
@@ -1643,202 +1591,32 @@ const AdminCalendar = () => {
         </div>
       )}
 
-      {/* Modal para lista de empleados */}
-      {showEmpleadosList && (
-        <div className="modal-overlay" onClick={() => setShowEmpleadosList(false)}>
-          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+      {/* Modal para nuevo cliente */}
+      {showClientForm && (
+        <div className="modal-overlay" onClick={() => setShowClientForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
             <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#1a202c', fontWeight: 900, fontSize: '1.8rem', margin: 0, textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}>👥 Gestionar Empleados</h3>
-              <button className="close-btn" onClick={() => setShowEmpleadosList(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
+              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
+                Nuevo Cliente
+              </h3>
+              <button className="close-btn" onClick={() => setShowClientForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
             </div>
-            
-            <button 
-              style={{ 
-                background: '#357a6c', 
-                color: 'white', 
-                borderRadius: '8px', 
-                padding: '12px 24px', 
-                border: 'none', 
-                fontWeight: 700, 
-                fontSize: '1rem',
-                marginBottom: '20px',
-                width: '100%',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }} 
-              onClick={() => {
-                setShowEmpleadosList(false);
-                setVieneDeGestionEmpleados(true);
-                setShowEmployeeForm(true);
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = '#2d6356'}
-              onMouseLeave={e => e.currentTarget.style.background = '#357a6c'}
-            >
-              + Agregar Nuevo Empleado
-            </button>
-            
-            {empleados.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#6b7280', padding: '40px 20px' }}>
-                <p style={{ fontSize: '1.1rem', marginBottom: '12px' }}>No hay empleados registrados</p>
-                <p style={{ fontSize: '0.9rem' }}>Usa el botón "Nuevo Empleado" para agregar el primero</p>
-              </div>
-            ) : (
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {empleados.map((empleado, idx) => (
-                  <div key={empleado.id_empleado} style={{ 
-                    marginBottom: '16px', 
-                    background: '#f0fdf4', 
-                    borderRadius: '12px', 
-                    padding: '20px', 
-                    border: '2px solid #d1fae5',
-                    transition: 'all 0.2s ease'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ 
-                          color: '#204d47', 
-                          fontSize: '1.2rem', 
-                          fontWeight: 800, 
-                          margin: '0 0 8px 0' 
-                        }}>
-                          {empleado.nombre_empleado}
-                        </h4>
-                        <p style={{ 
-                          color: '#059669', 
-                          fontSize: '1rem', 
-                          fontWeight: 600, 
-                          margin: '0 0 4px 0' 
-                        }}>
-                          <strong>Especialidad:</strong> {
-                            empleado.especialidad?.nombre_especialidad || 'Sin especialidad asignada'
-                          }
-                        </p>
-                        <p style={{ 
-                          color: '#047857', 
-                          fontSize: '0.9rem', 
-                          fontWeight: 600, 
-                          margin: '0',
-                          textTransform: 'capitalize'
-                        }}>
-                          <strong>Rol:</strong> {empleado.rol}
-                        </p>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <span style={{ 
-                          background: '#10b981', 
-                          color: '#fff', 
-                          padding: '4px 12px', 
-                          borderRadius: '20px', 
-                          fontSize: '0.8rem', 
-                          fontWeight: 700,
-                          textAlign: 'center'
-                        }}>
-                          ID: {empleado.id_empleado}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ClienteForm onClose={() => setShowClientForm(false)} onClienteCreado={recargarClientes} />
           </div>
         </div>
       )}
 
-      {/* Modal para lista de clientes */}
-      {showClientesList && (
-        <div className="modal-overlay" onClick={() => setShowClientesList(false)}>
-          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+      {/* Modal para nuevo empleado */}
+      {showEmployeeForm && (
+        <div className="modal-overlay" onClick={() => setShowEmployeeForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
             <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#1a202c', fontWeight: 900, fontSize: '1.8rem', margin: 0, textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}>👤 Gestionar Clientes</h3>
-              <button className="close-btn" onClick={() => setShowClientesList(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
+              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
+                Nuevo Empleado
+              </h3>
+              <button className="close-btn" onClick={() => setShowEmployeeForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
             </div>
-            
-            <button 
-              style={{ 
-                background: '#7c3aed', 
-                color: 'white', 
-                borderRadius: '8px', 
-                padding: '12px 24px', 
-                border: 'none', 
-                fontWeight: 700, 
-                fontSize: '1rem',
-                marginBottom: '20px',
-                width: '100%',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }} 
-              onClick={() => {
-                setShowClientesList(false);
-                setShowClientForm(true);
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = '#6d28d9'}
-              onMouseLeave={e => e.currentTarget.style.background = '#7c3aed'}
-            >
-              + Agregar Nuevo Cliente
-            </button>
-            
-            {clientes.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#6b7280', padding: '40px 20px' }}>
-                <p style={{ fontSize: '1.1rem', marginBottom: '12px' }}>No hay clientes registrados</p>
-                <p style={{ fontSize: '0.9rem' }}>Usa el botón "Nuevo Cliente" para agregar el primero</p>
-              </div>
-            ) : (
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {clientes.map((cliente, idx) => (
-                  <div key={cliente.id_cliente} style={{ 
-                    marginBottom: '16px', 
-                    background: '#faf5ff', 
-                    borderRadius: '12px', 
-                    padding: '20px', 
-                    border: '2px solid #e9d5ff',
-                    transition: 'all 0.2s ease'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ 
-                          color: '#204d47', 
-                          fontSize: '1.2rem', 
-                          fontWeight: 800, 
-                          margin: '0 0 8px 0' 
-                        }}>
-                          {cliente.nombre_cliente} {cliente.apellido_cliente}
-                        </h4>
-                        <p style={{ 
-                          color: '#7c3aed', 
-                          fontSize: '1rem', 
-                          fontWeight: 600, 
-                          margin: '0 0 4px 0' 
-                        }}>
-                          <strong>📞 Teléfono:</strong> {cliente.telefono || 'No registrado'}
-                        </p>
-                        <p style={{ 
-                          color: '#6d28d9', 
-                          fontSize: '0.9rem', 
-                          fontWeight: 600, 
-                          margin: '0'
-                        }}>
-                          <strong>📧 Email:</strong> {cliente.correo_electronico || 'No registrado'}
-                        </p>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <span style={{ 
-                          background: '#7c3aed', 
-                          color: '#fff', 
-                          padding: '4px 12px', 
-                          borderRadius: '20px', 
-                          fontSize: '0.8rem', 
-                          fontWeight: 700,
-                          textAlign: 'center'
-                        }}>
-                          ID: {cliente.id_cliente}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <EmpleadoForm onClose={() => setShowEmployeeForm(false)} />
           </div>
         </div>
       )}

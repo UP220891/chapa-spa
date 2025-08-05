@@ -2,9 +2,8 @@
 import "../styles/notification.css";
 
 import React from "react";
-import { useSearchParams } from "next/navigation";
 
-import { crearCita, CitaForm, Servicio } from "@/servicios/citasService";
+import { CitaForm, crearCita } from "@/servicios/citasService";
 
 const CitasForm: React.FC = () => {
   const [servicios, setServicios] = React.useState<any[]>([]);
@@ -154,21 +153,6 @@ const CitasForm: React.FC = () => {
     }
     return [];
   };
-  const autocompletarUsuario = () => {
-    if (!usuario) {
-      setNotification({ type: 'error', message: 'No se encontró información de usuario en el sistema.' });
-      return;
-    }
-    let cambios: Partial<CitaForm> = {};
-    if (usuario.nombre_cliente) cambios.nombre = usuario.nombre_cliente;
-    if (usuario.correo_electronico) cambios.email = usuario.correo_electronico;
-    if (usuario.telefono) cambios.numero = usuario.telefono;
-    setForm(prev => ({
-      ...prev,
-      ...cambios,
-      servicio: prev.servicio // nunca sobreescribas el servicio
-    }));
-  };
   const [notification, setNotification] = React.useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [showNotification, setShowNotification] = React.useState(false);
   React.useEffect(() => {
@@ -186,32 +170,103 @@ const CitasForm: React.FC = () => {
   const [loading, setLoading] = React.useState<boolean>(false);
   const [mensaje, setMensaje] = React.useState<string>("");
   const [error, setError] = React.useState<string>("");
+  const [fieldErrors, setFieldErrors] = React.useState({
+    nombre: false,
+    email: false,
+    numero: false,
+    fecha: false,
+    hora: false,
+    servicio: false
+  });
+
+  // Función para validar campos en tiempo real
+  const validateField = (fieldName: string, value: any) => {
+    let isValid = true;
+    
+    switch (fieldName) {
+      case 'nombre':
+        isValid = value && value.trim().length > 0;
+        break;
+      case 'email':
+        isValid = value && value.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+        break;
+      case 'numero':
+        isValid = value && value.trim().length > 0 && /^[\d\s\-\+\(\)]+$/.test(value.trim());
+        break;
+      case 'fecha':
+        if (value) {
+          const selectedDate = new Date(value);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          isValid = selectedDate >= today;
+        } else {
+          isValid = false;
+        }
+        break;
+      case 'hora':
+        isValid = value && value !== '' && value !== '00:00';
+        break;
+      case 'servicio':
+        isValid = value && value.trim().length > 0;
+        break;
+    }
+    
+    setFieldErrors(prev => ({
+      ...prev,
+      [fieldName]: !isValid
+    }));
+    
+    return isValid;
+  };
+
+  // Función para validar todos los campos
+  const validateAllFields = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = form.fecha ? new Date(form.fecha) : null;
+    
+    const errors = {
+      nombre: !form.nombre?.trim(),
+      email: !form.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email),
+      numero: !form.numero?.trim() || !/^[\d\s\-\+\(\)]+$/.test(form.numero.trim()),
+      fecha: !form.fecha || !selectedDate || selectedDate < today,
+      hora: !form.hora || form.hora === '' || form.hora === '00:00',
+      servicio: !form.servicio?.trim()
+    };
+    
+    setFieldErrors(errors);
+    return !Object.values(errors).some(error => error);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const fieldName = e.target.id;
+    const value = e.target.value;
+    
     // Si el campo es hora, buscar el id_horario que corresponde a la hora seleccionada y el día
-    if (e.target.id === "hora") {
+    if (fieldName === "hora") {
       let idHorario = "";
-      if (form.fecha && e.target.value) {
+      if (form.fecha && value) {
         const [year, month, day] = form.fecha.split('-').map(Number);
         const fecha = new Date(year, month - 1, day);
         const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
         const diaActual = diasSemana[fecha.getDay()];
         // Buscar el horario exacto por día y hora
-        const horarioExacto = horarios.find(h => h.dia === diaActual && (h.hora_inicio?.slice(0,5) === e.target.value || (h.hora_inicio?.match(/T(\d{2}:\d{2})/)?.[1] === e.target.value)));
+        const horarioExacto = horarios.find(h => h.dia === diaActual && (h.hora_inicio?.slice(0,5) === value || (h.hora_inicio?.match(/T(\d{2}:\d{2})/)?.[1] === value)));
         if (horarioExacto) {
           idHorario = String(horarioExacto.id_horario);
         }
       }
       setForm({
         ...form,
-        hora: e.target.value,
+        hora: value,
         id_horario: idHorario
       });
-    } else if (e.target.id === "fecha") {
+      validateField('hora', value);
+    } else if (fieldName === "fecha") {
       // Si cambia la fecha y ya hay hora seleccionada, asigna el id_horario del horario del día
       let idHorario = form.id_horario;
-      if (e.target.value && form.hora) {
-        const [year, month, day] = e.target.value.split('-').map(Number);
+      if (value && form.hora) {
+        const [year, month, day] = value.split('-').map(Number);
         const fecha = new Date(year, month - 1, day);
         const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
         const diaActual = diasSemana[fecha.getDay()];
@@ -222,14 +277,23 @@ const CitasForm: React.FC = () => {
           idHorario = "";
         }
       }
-      setForm({ ...form, fecha: e.target.value, id_horario: idHorario });
+      setForm({ ...form, fecha: value, id_horario: idHorario });
+      validateField('fecha', value);
     } else {
-      setForm({ ...form, [e.target.id]: e.target.value });
+      setForm({ ...form, [fieldName]: value });
+      validateField(fieldName, value);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Validar todos los campos antes de enviar
+    if (!validateAllFields()) {
+      setNotification({ type: 'error', message: 'Por favor completa todos los campos correctamente' });
+      return;
+    }
+    
     setLoading(true);
     setMensaje("");
     setError("");
@@ -289,17 +353,17 @@ const CitasForm: React.FC = () => {
   return (
     <div className="register-container" style={{ position: 'relative' }}>
       {/* Botón regresar a servicios arriba y centrado */}
-      <div style={{ display:'flex', justifyContent:'center', marginBottom:'1.2rem', marginTop:'0.5rem' }}>
+      <div style={{ display:'flex', justifyContent:'center', marginBottom:'0.8rem', marginTop:'0.3rem' }}>
         <button
           type="button"
           style={{
             background:'#204d47',
             color:'#fff',
             border:'none',
-            borderRadius:'8px',
-            padding:'0.5rem 1.3rem 0.5rem 1.7rem',
+            borderRadius:'6px',
+            padding:'0.4rem 1rem 0.4rem 1.3rem',
             fontWeight:600,
-            fontSize:'1rem',
+            fontSize:'0.9rem',
             boxShadow:'0 2px 8px rgba(32,77,71,0.10)',
             position:'relative',
             transition:'background 0.2s',
@@ -312,8 +376,8 @@ const CitasForm: React.FC = () => {
           onMouseOut={e => (e.currentTarget.style.background='#204d47')}
           onClick={() => { window.location.href = '/servicio'; }}
         >
-          <span style={{ position:'absolute', left:'1rem', top:'50%', transform:'translateY(-50%)', fontSize:'1.2em' }}>←</span>
-          <span style={{ marginLeft:'0.7rem' }}>Regresar a servicios</span>
+          <span style={{ position:'absolute', left:'0.8rem', top:'50%', transform:'translateY(-50%)', fontSize:'1.1em' }}>←</span>
+          <span style={{ marginLeft:'0.6rem' }}>Regresar a servicios</span>
         </button>
       </div>
       <div className="register-card">
@@ -346,42 +410,113 @@ const CitasForm: React.FC = () => {
             <h1 className="register-heading">Reservación de cita</h1>
           </div>
           {nombreServicio && (
-            <div style={{textAlign:'center',marginBottom:'1rem',fontWeight:600,color:'#204d47'}}>
+            <div style={{textAlign:'center',marginBottom:'0.8rem',fontWeight:600,color:'#204d47',fontSize:'0.9rem'}}>
               Servicio seleccionado: {nombreServicio}
             </div>
           )}
           {bloqueado && (
-            <div style={{ color: 'red', fontWeight: 600, textAlign: 'center', marginBottom: '1rem' }}>
+            <div style={{ color: 'red', fontWeight: 600, textAlign: 'center', marginBottom: '0.8rem', fontSize:'0.9rem' }}>
               Debes iniciar sesión para reservar una cita.
             </div>
-          )}
-          {!bloqueado && (
-            <button type="button" style={{ marginBottom: '1rem', background: '#204d47', color: '#fff', border: 'none', borderRadius: 8, padding: '0.7rem 1.2rem', fontWeight: 500, cursor: 'pointer' }} onClick={autocompletarUsuario}>
-              Autocompletar mis datos
-            </button>
           )}
           <form className="register-form" onSubmit={handleSubmit}>
             {/* Primera fila: Nombres, Apellidos, Email */}
             <div className="register-row">
               <div className="register-col">
                 <label htmlFor="nombre" className="register-label">Nombres</label>
-                <input type="text" id="nombre" placeholder="Ingresar Nombres" className="register-input" required style={{ color: '#204d47' }} value={form.nombre} onChange={handleChange} />
+                <input 
+                  type="text" 
+                  id="nombre" 
+                  placeholder="Ingresar Nombres" 
+                  className="register-input" 
+                  required 
+                  style={{ 
+                    color: '#204d47',
+                    borderColor: fieldErrors.nombre ? '#e53e3e' : undefined,
+                    backgroundColor: fieldErrors.nombre ? '#fed7d7' : undefined
+                  }} 
+                  value={form.nombre} 
+                  onChange={handleChange}
+                  onBlur={e => validateField('nombre', e.target.value)}
+                />
+                {fieldErrors.nombre && (
+                  <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
+                    El nombre es obligatorio
+                  </span>
+                )}
               </div>
               {/* Eliminar campo apellidos */}
               <div className="register-col">
                 <label htmlFor="email" className="register-label">Email</label>
-                <input type="email" id="email" placeholder="Ingresar Email" className="register-input" required style={{ color: '#204d47' }} value={form.email} onChange={handleChange} />
+                <input 
+                  type="email" 
+                  id="email" 
+                  placeholder="Ingresar Email" 
+                  className="register-input" 
+                  required 
+                  style={{ 
+                    color: '#204d47',
+                    borderColor: fieldErrors.email ? '#e53e3e' : undefined,
+                    backgroundColor: fieldErrors.email ? '#fed7d7' : undefined
+                  }} 
+                  value={form.email} 
+                  onChange={handleChange}
+                  onBlur={e => validateField('email', e.target.value)}
+                />
+                {fieldErrors.email && (
+                  <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
+                    Ingresa un email válido
+                  </span>
+                )}
               </div>
             </div>
             {/* Segunda fila: Número, Fecha, Hora (sin campo Horario) */}
             <div className="register-row">
               <div className="register-col">
                 <label htmlFor="numero" className="register-label">Número</label>
-                <input type="tel" id="numero" placeholder="Ingresar Número" className="register-input" required style={{ color: '#204d47' }} value={form.numero} onChange={handleChange} />
+                <input 
+                  type="tel" 
+                  id="numero" 
+                  placeholder="Ingresar Número" 
+                  className="register-input" 
+                  required 
+                  style={{ 
+                    color: '#204d47',
+                    borderColor: fieldErrors.numero ? '#e53e3e' : undefined,
+                    backgroundColor: fieldErrors.numero ? '#fed7d7' : undefined
+                  }} 
+                  value={form.numero} 
+                  onChange={handleChange}
+                  onBlur={e => validateField('numero', e.target.value)}
+                />
+                {fieldErrors.numero && (
+                  <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
+                    Ingresa un número válido
+                  </span>
+                )}
               </div>
               <div className="register-col">
                 <label htmlFor="fecha" className="register-label">Fecha</label>
-                <input type="date" id="fecha" className="register-input" required style={{ color: '#204d47' }} value={form.fecha} onChange={handleChange} />
+                <input 
+                  type="date" 
+                  id="fecha" 
+                  className="register-input" 
+                  required 
+                  style={{ 
+                    color: '#204d47',
+                    borderColor: fieldErrors.fecha ? '#e53e3e' : undefined,
+                    backgroundColor: fieldErrors.fecha ? '#fed7d7' : undefined
+                  }} 
+                  value={form.fecha} 
+                  onChange={handleChange}
+                  onBlur={e => validateField('fecha', e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+                {fieldErrors.fecha && (
+                  <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
+                    Selecciona una fecha válida
+                  </span>
+                )}
               </div>
               <div className="register-col">
                 <label htmlFor="id_horario" className="register-label">Horario</label>
@@ -390,12 +525,32 @@ const CitasForm: React.FC = () => {
                     No hay horarios disponibles para el día seleccionado.
                   </div>
                 ) : (
-                  <select id="hora" className="register-input" required style={{ color: '#204d47' }} value={form.hora || ""} onChange={handleChange} disabled={!form.fecha || getHorasDisponibles().length === 0}>
-                    <option value="">Selecciona hora</option>
-                    {getHorasDisponibles().map((hora) => (
-                      <option key={hora} value={hora}>{hora}</option>
-                    ))}
-                  </select>
+                  <>
+                    <select 
+                      id="hora" 
+                      className="register-input" 
+                      required 
+                      style={{ 
+                        color: '#204d47',
+                        borderColor: fieldErrors.hora ? '#e53e3e' : undefined,
+                        backgroundColor: fieldErrors.hora ? '#fed7d7' : undefined
+                      }} 
+                      value={form.hora || ""} 
+                      onChange={handleChange}
+                      onBlur={e => validateField('hora', e.target.value)}
+                      disabled={!form.fecha || getHorasDisponibles().length === 0}
+                    >
+                      <option value="">Selecciona hora</option>
+                      {getHorasDisponibles().map((hora) => (
+                        <option key={hora} value={hora}>{hora}</option>
+                      ))}
+                    </select>
+                    {fieldErrors.hora && (
+                      <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
+                        Selecciona una hora
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -407,9 +562,15 @@ const CitasForm: React.FC = () => {
                   id="servicio"
                   className="register-input"
                   required
-                  style={{ color: '#204d47', background: !!servicioInicial ? '#e0f1ee' : undefined }}
+                  style={{ 
+                    color: '#204d47', 
+                    background: !!servicioInicial ? '#e0f1ee' : undefined,
+                    borderColor: fieldErrors.servicio ? '#e53e3e' : undefined,
+                    backgroundColor: fieldErrors.servicio ? '#fed7d7' : (!!servicioInicial ? '#e0f1ee' : undefined)
+                  }}
                   value={form.servicio}
                   onChange={handleChange}
+                  onBlur={e => validateField('servicio', e.target.value)}
                   disabled={!!servicioInicial}
                 >
                   <option value="">Servicio</option>
@@ -424,6 +585,11 @@ const CitasForm: React.FC = () => {
                     Servicio seleccionado automáticamente: <b>{servicioInicial}</b>
                   </div>
                 )}
+                {fieldErrors.servicio && !servicioInicial && (
+                  <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
+                    Selecciona un servicio
+                  </span>
+                )}
               </div>
               <div className="register-col"></div>
               <div className="register-col"></div>
@@ -431,22 +597,28 @@ const CitasForm: React.FC = () => {
             {/* Cuarta fila: Notas */}
             <div className="register-row">
               <div className="register-col" style={{ flex: 3 }}>
-                <label htmlFor="notas" className="register-label">Notas</label>
-                <textarea id="notas" placeholder="Notas adicionales" className="register-input" style={{ resize: 'vertical', minHeight: '80px', maxHeight: '180px', color: '#204d47' }} value={form.notas} onChange={handleChange} />
+                <label htmlFor="notas" className="register-label" style={{fontSize:'0.9rem'}}>Notas</label>
+                <textarea id="notas" placeholder="Notas adicionales" className="register-input" style={{ resize: 'vertical', minHeight: '60px', maxHeight: '120px', color: '#204d47', fontSize:'0.9rem', padding:'0.5rem' }} value={form.notas} onChange={handleChange} />
               </div>
             </div>
             {/* Botón */}
-            <div className="register-row" style={{ justifyContent: 'center', marginTop: '1.5rem' }}>
+            <div className="register-row" style={{ justifyContent: 'center', marginTop: '1rem' }}>
               <button
                 type="submit"
                 className="register-button"
-                disabled={loading}
+                disabled={loading || Object.values(fieldErrors).some(error => error)}
+                style={{
+                  opacity: loading || Object.values(fieldErrors).some(error => error) ? 0.6 : 1,
+                  cursor: loading || Object.values(fieldErrors).some(error => error) ? 'not-allowed' : 'pointer',
+                  padding: '0.6rem 1.2rem',
+                  fontSize: '0.9rem'
+                }}
               >
                 {loading ? "Reservando..." : "Reservar cita"}
               </button>
             </div>
-            {mensaje && <div style={{ color: '#204d47', fontWeight: 600, textAlign: 'center', marginTop: '1rem' }}>{mensaje}</div>}
-            {error && <div style={{ color: 'red', fontWeight: 600, textAlign: 'center', marginTop: '1rem' }}>{error}</div>}
+            {mensaje && <div style={{ color: '#204d47', fontWeight: 600, textAlign: 'center', marginTop: '0.8rem', fontSize:'0.9rem' }}>{mensaje}</div>}
+            {error && <div style={{ color: 'red', fontWeight: 600, textAlign: 'center', marginTop: '0.8rem', fontSize:'0.9rem' }}>{error}</div>}
           </form>
         </div>
       </div>
