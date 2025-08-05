@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { crearCita, editarCita, getCitas } from '../servicios/citasService';
 import { createCliente, getClientes } from '../servicios/clientesService';
 import { getServicios } from '../servicios/serviciosService';
+import '../styles/notification.css';
 import { ProtectedRoute } from './ProtectedRoute';
 
 interface ClienteFormProps {
@@ -104,6 +105,8 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreado }) =
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showNotification, setShowNotification] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -125,12 +128,20 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreado }) =
         password: form.password
       });
       
-      alert('Cliente guardado exitosamente');
-      // Recargar la lista de clientes si se proporciona la función
-      if (onClienteCreado) {
-        onClienteCreado();
-      }
-      onClose();
+      // Mostrar notificación de éxito
+      setNotification({ type: 'success', message: 'Cliente guardado exitosamente' });
+      setShowNotification(true);
+      setTimeout(() => {
+        setShowNotification(false);
+        setTimeout(() => {
+          setNotification(null);
+          // Recargar la lista de clientes si se proporciona la función
+          if (onClienteCreado) {
+            onClienteCreado();
+          }
+          onClose();
+        }, 400);
+      }, 3000);
     } catch (error: any) {
       console.error('Error al guardar cliente:', error);
       setError(error.message || 'Error al guardar el cliente');
@@ -140,19 +151,41 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreado }) =
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      {error && (
-        <div style={{ 
-          background: '#fee', 
-          color: '#c53030', 
-          padding: '8px 12px', 
-          borderRadius: '4px', 
-          marginBottom: '16px',
-          border: '1px solid #feb2b2'
-        }}>
-          {error}
+    <>
+      {notification && (
+        <div
+          className={`notification-popup ${notification.type} ${showNotification ? 'show' : 'hide'}`}
+          style={{ position: 'fixed', top: 30, left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+        >
+          <span className="notification-icon">
+            {notification.type === 'error' ? '⚠️' : '✅'}
+          </span>
+          {notification.message}
+          <button
+            className="notification-close"
+            onClick={() => {
+              setShowNotification(false);
+              setTimeout(() => setNotification(null), 400);
+            }}
+            aria-label="Cerrar notificación"
+          >
+            &times;
+          </button>
         </div>
       )}
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <div style={{ 
+            background: '#fee', 
+            color: '#c53030', 
+            padding: '8px 12px', 
+            borderRadius: '4px', 
+            marginBottom: '16px',
+            border: '1px solid #feb2b2'
+          }}>
+            {error}
+          </div>
+        )}
       
       <div className="form-group" style={{ marginBottom: '16px' }}>
         <label>Nombre</label>
@@ -250,6 +283,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreado }) =
         </button>
       </div>
     </form>
+    </>
   );
 }
 // Componente separado para el modal de edición de cita (solo estado)
