@@ -31,6 +31,10 @@ export interface Empleado {
   rol: string;
   fecha_registro: string;
   horarios?: any[];
+  especialidad?: {
+    id_especialidad: number;
+    nombre_especialidad: string;
+  } | null;
 }
 
 // Función para obtener todos los empleados

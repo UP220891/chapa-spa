@@ -711,6 +711,7 @@ const AdminCalendar = () => {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [showEmpleadosList, setShowEmpleadosList] = useState(false);
   const [showClientesList, setShowClientesList] = useState(false);
+  const [vieneDeGestionEmpleados, setVieneDeGestionEmpleados] = useState(false);
   
   const handleNewAppointment = () => setShowAppointmentForm(true);
   const handleNewClient = () => setShowClientForm(true);
@@ -721,6 +722,18 @@ const AdminCalendar = () => {
     try {
       const empleadosData = await getEmpleados();
       setEmpleados(empleadosData);
+    } catch (error) {
+      console.error('Error al cargar empleados:', error);
+    }
+  };
+
+  // Función para recargar empleados y volver al modal de gestión
+  const recargarEmpleadosYVolverAGestion = async () => {
+    try {
+      const empleadosData = await getEmpleados();
+      setEmpleados(empleadosData);
+      // Volver a abrir el modal de gestión de empleados
+      setShowEmpleadosList(true);
     } catch (error) {
       console.error('Error al cargar empleados:', error);
     }
@@ -1407,15 +1420,24 @@ const AdminCalendar = () => {
       )}
       {/* Modal para nuevo empleado */}
       {showEmployeeForm && (
-        <div className="modal-overlay" onClick={() => setShowEmployeeForm(false)}>
+        <div className="modal-overlay" onClick={() => {
+          setShowEmployeeForm(false);
+          setVieneDeGestionEmpleados(false);
+        }}>
           <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
             <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: '12px 12px 0 0', padding: '0' }}>
               <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.4rem', margin: 0 }}>👤 Nuevo Empleado</h3>
-              <button className="close-btn" onClick={() => setShowEmployeeForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
+              <button className="close-btn" onClick={() => {
+                setShowEmployeeForm(false);
+                setVieneDeGestionEmpleados(false);
+              }} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
             </div>
             <EmpleadoForm 
-              onClose={() => setShowEmployeeForm(false)} 
-              onEmpleadoCreated={recargarEmpleados}
+              onClose={() => {
+                setShowEmployeeForm(false);
+                setVieneDeGestionEmpleados(false);
+              }} 
+              onEmpleadoCreated={vieneDeGestionEmpleados ? recargarEmpleadosYVolverAGestion : recargarEmpleados}
             />
           </div>
         </div>
@@ -1646,6 +1668,7 @@ const AdminCalendar = () => {
               }} 
               onClick={() => {
                 setShowEmpleadosList(false);
+                setVieneDeGestionEmpleados(true);
                 setShowEmployeeForm(true);
               }}
               onMouseEnter={e => e.currentTarget.style.background = '#2d6356'}
