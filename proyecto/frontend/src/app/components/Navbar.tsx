@@ -44,8 +44,8 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
           <li><a href="/conocenos" className="hover:text-pink-600">Conócenos</a></li>
           <li><a href="/servicio" className="hover:text-pink-600">Servicios</a></li>
           <li><a href="/ubicacion" className="hover:text-pink-600">Ubicación</a></li>
-          {/* Enlace para cualquier empleado o admin */}
-          {usuario && (usuario.rol === 'admin' || usuario.rol === 'empleado') && (
+          {/* Enlace para cualquier empleado (admin o empleado) */}
+          {usuario && (usuario.tipo === 'admin' || usuario.tipo === 'empleado') && (
             <li><a href="/Administrador" className="hover:text-pink-600">Administrador</a></li>
           )}
         </ul>
@@ -59,7 +59,7 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
         {usuario && (
           <div className="flex items-center gap-4 pl-6 border-l border-gray-200">
             <span className="text-sm text-gray-600 text-right min-w-[120px] leading-tight">
-              Bienvenido,<br />{usuario.nombre_cliente || usuario.nombre_empleado || usuario.email}
+              Bienvenido,<br />{usuario.nombre || usuario.email}
             </span>
             <button
               className="flex items-center justify-center bg-[#204d47] hover:bg-[#357a6c] rounded-full p-2 border-none transition-colors shadow-md"

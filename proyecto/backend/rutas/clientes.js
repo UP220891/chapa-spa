@@ -14,6 +14,7 @@ router.post('/', verificarToken, [
   body('correo_electronico').isEmail().withMessage('El correo debe ser válido'),
   body('telefono').notEmpty().withMessage('El teléfono es obligatorio'),
   body('fecha_nacimiento').isISO8601().withMessage('La fecha de nacimiento debe ser válida'),
+  body('password').optional().isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
 ], clientesController.crearCliente);
 // Actualizar un cliente
 router.put('/:id', verificarToken, [

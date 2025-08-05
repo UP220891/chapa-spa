@@ -87,9 +87,14 @@ async function createEmpleado(data) {
     const pool = await poolPromise;
     const result = await pool.request()
       .input('nombre_empleado', sql.VarChar(50), data.nombre_empleado)
+      .input('email', sql.NVarChar(50), data.email)
+      .input('telefono', sql.VarChar(15), data.telefono)
       .input('id_especialidad', sql.Int, data.id_especialidad)
-      .input('rol', sql.NVarChar(20), data.rol || 'empleado')
-      .query('INSERT INTO T_Empleados (nombre_empleado, id_especialidad, rol) VALUES (@nombre_empleado, @id_especialidad, @rol)');
+      .input('rol', sql.NVarChar(20), 'empleado') // Todos los empleados tienen rol empleado
+      .input('fecha_registro', sql.Date, data.fecha_registro)
+      .query(`INSERT INTO T_Empleados (nombre_empleado, email, telefono, id_especialidad, rol, fecha_registro) 
+              OUTPUT INSERTED.id_empleado 
+              VALUES (@nombre_empleado, @email, @telefono, @id_especialidad, @rol, @fecha_registro)`);
     return result;
   } catch (err) {
     throw err;

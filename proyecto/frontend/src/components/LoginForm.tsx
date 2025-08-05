@@ -1,4 +1,7 @@
 import React from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { login, LoginData } from '../servicios/authService';
+import { getRedirectPath } from '../utils/auth-config';
 
 function LoginForm({ showHomeButton = false }) {
   // Estados para email y password
@@ -7,6 +10,7 @@ function LoginForm({ showHomeButton = false }) {
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const { login: authLogin } = useAuth();
 
   // Manejar submit
   const validate = (email: string, password: string) => {
@@ -24,22 +28,40 @@ function LoginForm({ showHomeButton = false }) {
     }
     setError(null);
     setLoading(true);
+    
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('usuario', JSON.stringify(data.usuario));
-        window.location.href = '/';
-      } else {
-        setError(data.mensaje || 'Error al iniciar sesión');
-      }
-    } catch (err) {
-      setError('Error de conexión');
+      const loginData: LoginData = { email, password };
+      const response = await login(loginData);
+      
+      // El backend devuelve 'usuario' y 'tipo_usuario', no 'user' y 'tipo'
+      console.log('Respuesta del login:', response);
+      
+      // Crear el objeto user con la estructura esperada
+      const user = {
+        id: response.usuario?.id_cliente || response.usuario?.id_empleado || 0,
+        nombre: response.usuario?.nombre_cliente || response.usuario?.nombre_empleado || '',
+        email: email,
+        tipo: response.usuario?.tipo_usuario || 'cliente'
+      };
+      
+      console.log('Usuario creado para autenticación:', user);
+      
+      // Actualizar el estado de autenticación
+      authLogin(user);
+      
+      // Redireccionar según el tipo de usuario
+      const redirectPath = getRedirectPath(user.tipo);
+      console.log(`Tipo de usuario: ${user.tipo}, Redirigiendo a: ${redirectPath}`);
+      
+      // Pequeño delay para asegurar que el estado se actualice
+      setTimeout(() => {
+        window.location.href = redirectPath;
+      }, 100);
+      
+    } catch (err: any) {
+      console.error('Error completo del login:', err);
+      console.error('Respuesta del servidor:', err.response?.data);
+      setError(err.message || 'Error al iniciar sesión');
     }
     setLoading(false);
   };
