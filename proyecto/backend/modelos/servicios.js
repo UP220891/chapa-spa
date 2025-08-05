@@ -51,7 +51,8 @@ async function updateServicio(id_servicio, data) {
       .input('descripcion', sql.Text, data.descripcion || null)
       .input('duracion', sql.Int, data.duracion)
       .input('precio', sql.Decimal(8,2), data.precio)
-      .query('UPDATE C_Servicios SET nombre_servicio = @nombre_servicio, descripcion = @descripcion, duracion = @duracion, precio = @precio WHERE id_servicio = @id_servicio');
+      .input('imagen', sql.Text, data.imagen || null)
+      .query('UPDATE C_Servicios SET nombre_servicio = @nombre_servicio, descripcion = @descripcion, duracion = @duracion, precio = @precio, imagen = @imagen WHERE id_servicio = @id_servicio');
     return result;
   } catch (err) {
     throw err;
