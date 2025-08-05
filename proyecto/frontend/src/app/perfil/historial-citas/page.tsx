@@ -86,9 +86,11 @@ const HistorialCitas = () => {
       // Buscar la cita actual
       const citaActual = citas.find(c => c.id_cita === id_cita);
       if (!citaActual) throw new Error("Cita no encontrada");
+      
       // Usar los valores editados o los originales si no se editaron
       let nuevaHora = editForm.hora || citaActual.fecha_cita?.split("T")[1]?.slice(0,5);
       let nuevoIdHorario = citaActual.id_horario;
+      
       // Si la hora es inválida, intentar extraerla de las notas
       if (!nuevaHora || nuevaHora === 'null' || nuevaHora === '' || nuevaHora === '00:00') {
         if (citaActual.notas) {
@@ -98,6 +100,7 @@ const HistorialCitas = () => {
           }
         }
       }
+      
       // Si la cita usa horarios del backend y hay horarios cargados, buscar el id_horario correspondiente a la hora seleccionada
       if ((!nuevaHora || nuevaHora === 'null' || nuevaHora === '' || nuevaHora === '00:00') && horarios.length > 0 && nuevoIdHorario) {
         // Si no hay hora, reconstruir desde el horario
@@ -107,10 +110,12 @@ const HistorialCitas = () => {
           nuevaHora = match ? match[1] : horario.hora_inicio.slice(0,5);
         }
       }
+      
       if (!nuevaHora || nuevaHora === 'null' || nuevaHora === '' || nuevaHora === '00:00') {
         alert('Selecciona una hora válida.');
         return;
       }
+      
       if (horarios.length > 0 && nuevaHora) {
         const horarioEncontrado = horarios.find((h: any) => {
           const match = h.hora_inicio.match(/T(\d{2}:\d{2})/);
@@ -121,8 +126,15 @@ const HistorialCitas = () => {
           nuevoIdHorario = horarioEncontrado.id_horario;
         }
       }
+      
+      // Buscar el id_cliente del usuario actual con el mismo patrón
+      const id_cliente = usuario?.id || usuario?.id_cliente || usuario?.idCliente || usuario?.clienteId;
+      if (!id_cliente) {
+        throw new Error("No se pudo obtener el ID del cliente");
+      }
+      
       const payload = {
-        id_cliente: citaActual.id_cliente,
+        id_cliente: Number(id_cliente),
         id_empleado: citaActual.id_empleado,
         id_servicio: citaActual.id_servicio,
         fecha: editForm.fecha || citaActual.fecha_cita?.split("T")[0],
@@ -132,6 +144,9 @@ const HistorialCitas = () => {
         costo_total: citaActual.costo_total,
         id_horario: nuevoIdHorario
       };
+      
+      console.log("Payload para editar cita:", payload);
+      
       await editarCita(id_cita, payload);
       setCitas(prev => prev.map(c => {
         if (c.id_cita === id_cita) {
@@ -166,10 +181,23 @@ const HistorialCitas = () => {
     if (usuarioLocal && token) {
       const user = JSON.parse(usuarioLocal);
       setUsuario(user);
-      // Log para depuración
-      console.log("id_cliente:", user.id_cliente);
+      
+      // Log para depuración - mostrar todos los campos del usuario
+      console.log("Usuario completo:", user);
+      console.log("Todos los campos del usuario:", Object.keys(user));
       console.log("token:", token);
-      fetchCitas(user.id_cliente, token);
+      
+      // Buscar el id_cliente en diferentes campos posibles
+      const id_cliente = user.id || user.id_cliente || user.idCliente || user.clienteId;
+      console.log("id_cliente encontrado:", id_cliente);
+      
+      if (id_cliente && !isNaN(Number(id_cliente))) {
+        fetchCitas(Number(id_cliente), token);
+      } else {
+        setError(`No se encontró un ID de cliente válido. Campos disponibles: ${Object.keys(user).join(', ')}`);
+        setCargando(false);
+      }
+      
       // Traer horarios del backend
       obtenerHorarios().then(setHorarios).catch(() => setHorarios([]));
     } else {
@@ -236,32 +264,47 @@ const HistorialCitas = () => {
 
   const fetchCitas = async (id_cliente: number, token: string) => {
     try {
-      console.log("Petición a:", `${process.env.NEXT_PUBLIC_API_URL}/api/citas/cliente/${id_cliente}`);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/citas/cliente/${id_cliente}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      console.log("=== DEPURACIÓN FETCH CITAS ===");
+      console.log("id_cliente recibido:", id_cliente);
+      console.log("Tipo de id_cliente:", typeof id_cliente);
+      console.log("Es número válido:", !isNaN(id_cliente));
+      
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/citas/cliente/${id_cliente}`;
+      console.log("URL completa:", url);
+      
+      const res = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      console.log("Status de respuesta:", res.status);
+      console.log("Headers de respuesta:", [...res.headers.entries()]);
+      
       const text = await res.text();
+      console.log("Respuesta raw:", text);
+      
       let data;
       try {
         data = JSON.parse(text);
       } catch {
         data = text;
       }
+      
       if (res.ok) {
+        console.log("Citas cargadas exitosamente:", data);
         setCitas(data);
       } else {
-        setError((data && data.mensaje) ? data.mensaje : `Error al cargar citas: ${text}`);
-        console.error("Respuesta error:", text);
+        const errorMsg = (data && data.mensaje) ? data.mensaje : 
+                        (data && data.error) ? `${data.error}: ${data.detalle || ''}` :
+                        `Error ${res.status}: ${text}`;
+        setError(errorMsg);
+        console.error("Error en respuesta:", { status: res.status, data, text });
       }
     } catch (err) {
       setError("Error de conexión");
-      console.error("Error de conexión:", err);
+      console.error("Error de conexión completo:", err);
     }
     setCargando(false);
   };

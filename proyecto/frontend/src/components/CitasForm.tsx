@@ -293,69 +293,159 @@ const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
   const generarPDFCita = (datosReserva: any) => {
     const doc = new jsPDF();
     
-    // Configurar fuente y título
-    doc.setFontSize(20);
+    // HEADER CON DEGRADADO SIMULADO
+    // Fondo principal del header
+    doc.setFillColor(32, 77, 71); // #204d47
+    doc.rect(0, 0, 210, 50, 'F');
+    
+    // Borde decorativo superior
+    doc.setFillColor(53, 122, 108); // #357a6c
+    doc.rect(0, 0, 210, 8, 'F');
+    
+    // Elementos decorativos laterales
+    doc.setFillColor(224, 241, 238); // #e0f1ee
+    doc.circle(15, 25, 12, 'F');
+    doc.circle(195, 25, 12, 'F');
+    
+    // TÍTULO PRINCIPAL
+    doc.setTextColor(255, 255, 255); // Blanco
+    doc.setFontSize(24);
     doc.setFont("helvetica", "bold");
     doc.text("CONFIRMACIÓN DE CITA", 105, 20, { align: "center" });
     
-    // Línea decorativa
-    doc.setLineWidth(0.5);
-    doc.line(20, 25, 190, 25);
+    // Subtítulo elegante
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Centro de Bienestar y Spa", 105, 30, { align: "center" });
     
-    // Información del cliente
-    doc.setFontSize(14);
+    // Línea decorativa dorada
+    doc.setDrawColor(255, 215, 0); // Dorado
+    doc.setLineWidth(1);
+    doc.line(40, 38, 170, 38);
+    
+    // SECCIÓN CLIENTE CON FONDO
+    // Fondo suave para la sección
+    doc.setFillColor(248, 252, 251); // Muy suave
+    doc.rect(15, 60, 180, 35, 'F');
+    
+    // Borde izquierdo de color
+    doc.setFillColor(53, 122, 108); // #357a6c
+    doc.rect(15, 60, 4, 35, 'F');
+    
+    // Título de sección
+    doc.setTextColor(32, 77, 71); // #204d47
+    doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("DATOS DEL CLIENTE", 20, 40);
+    doc.text("DATOS DEL CLIENTE", 25, 72);
     
+    // Datos del cliente con iconos simulados
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    doc.text(`Nombre: ${datosReserva.nombre}`, 20, 50);
-    doc.text(`Email: ${datosReserva.email}`, 20, 58);
-    doc.text(`Teléfono: ${datosReserva.numero}`, 20, 66);
+    doc.setTextColor(0, 0, 0); // Negro
     
-    // Información de la cita
-    doc.setFontSize(14);
+    // Círculos decorativos para los datos
+    doc.setFillColor(224, 241, 238); // #e0f1ee
+    doc.circle(22, 82, 2, 'F');
+    doc.circle(22, 87, 2, 'F');
+    doc.circle(22, 92, 2, 'F');
+    
+    doc.text(`👤 Nombre: ${datosReserva.nombre}`, 30, 84);
+    doc.text(`📧 Email: ${datosReserva.email}`, 30, 89);
+    doc.text(`📱 Teléfono: ${datosReserva.numero}`, 30, 94);
+    
+    // SECCIÓN DETALLES DE LA CITA
+    doc.setFillColor(248, 252, 251);
+    doc.rect(15, 105, 180, 45, 'F');
+    
+    doc.setFillColor(53, 122, 108);
+    doc.rect(15, 105, 4, 45, 'F');
+    
+    doc.setTextColor(32, 77, 71);
+    doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("DETALLES DE LA CITA", 20, 85);
+    doc.text("DETALLES DE LA CITA", 25, 117);
     
-    doc.setFontSize(11);
+    // Datos de la cita con mejor formato
+    doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text(`Servicio: ${datosReserva.servicio}`, 20, 95);
-    doc.text(`Fecha: ${new Date(datosReserva.fecha).toLocaleDateString('es-ES', { 
+    doc.setTextColor(0, 0, 0);
+    
+    // Círculos decorativos
+    doc.setFillColor(224, 241, 238);
+    doc.circle(22, 128, 2, 'F');
+    doc.circle(22, 136, 2, 'F');
+    doc.circle(22, 144, 2, 'F');
+    
+    doc.text(`🌿 Servicio: ${datosReserva.servicio}`, 30, 130);
+    doc.text(`📅 Fecha: ${new Date(datosReserva.fecha).toLocaleDateString('es-ES', { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
-    })}`, 20, 103);
-    doc.text(`Hora: ${datosReserva.hora}`, 20, 111);
+    })}`, 30, 138);
+    doc.text(`🕐 Hora: ${datosReserva.hora}`, 30, 146);
+    
     if (datosReserva.notas) {
-      doc.text(`Notas: ${datosReserva.notas}`, 20, 119);
+      doc.setFillColor(224, 241, 238);
+      doc.circle(22, 152, 2, 'F');
+      doc.text(`📝 Notas: ${datosReserva.notas}`, 30, 154);
     }
     
-    // Información del spa
+    // INFORMACIÓN DEL SPA CON ESTILO
+    doc.setFillColor(32, 77, 71); // #204d47
+    doc.rect(15, 165, 180, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("INFORMACIÓN DEL SPA", 20, 140);
+    doc.text("INFORMACIÓN DEL SPA", 105, 177, { align: "center" });
     
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.text("Dirección: [Tu dirección aquí]", 20, 150);
-    doc.text("Teléfono: [Tu teléfono aquí]", 20, 158);
-    doc.text("Email: [Tu email aquí]", 20, 166);
-    
-    // Política de cancelación
     doc.setFontSize(10);
-    doc.setFont("helvetica", "italic");
-    doc.text("POLÍTICA DE CANCELACIÓN:", 20, 185);
-    doc.text("Por favor, cancele su cita con al menos 24 horas de anticipación.", 20, 192);
-    doc.text("Gracias por elegir nuestros servicios.", 20, 199);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(224, 241, 238); // #e0f1ee
+    doc.text("📍 Dirección: Av. Relajación 123, Centro de Bienestar", 25, 187);
+    doc.text("📞 Teléfono: +52 (555) 123-4567", 25, 194);
+    doc.text("✉️ Email: contacto@chapaspa.com", 25, 201);
     
-    // Fecha de generación
+    // FOOTER ELEGANTE
+    // Línea decorativa
+    doc.setDrawColor(53, 122, 108); // #357a6c
+    doc.setLineWidth(2);
+    doc.line(15, 220, 195, 220);
+    
+    // Política de cancelación con mejor diseño
+    doc.setTextColor(32, 77, 71); // #204d47
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("POLÍTICA DE CANCELACIÓN", 105, 230, { align: "center" });
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80); // Gris oscuro
+    doc.text("Por favor, cancele su cita con al menos 24 horas de anticipación.", 105, 238, { align: "center" });
+    doc.text("Agradecemos su preferencia y esperamos brindarle una experiencia excepcional.", 105, 245, { align: "center" });
+    
+    // Elemento decorativo final
+    doc.setFillColor(224, 241, 238); // #e0f1ee
+    doc.rect(90, 252, 30, 3, 'F');
+    
+    // Fecha de generación elegante
+    doc.setTextColor(120, 120, 120); // Gris medio
     doc.setFontSize(8);
-    doc.text(`Generado el: ${new Date().toLocaleString('es-ES')}`, 20, 270);
+    doc.setFont("helvetica", "italic");
+    doc.text(`Documento generado el ${new Date().toLocaleString('es-ES')}`, 105, 265, { align: "center" });
     
-    // Guardar el PDF
-    const fileName = `cita_${datosReserva.nombre.replace(/\s+/g, '_')}_${datosReserva.fecha}.pdf`;
+    // Código de confirmación simulado
+    const codigoConfirmacion = `CHA-${Date.now().toString().slice(-6)}`;
+    doc.setTextColor(53, 122, 108); // #357a6c
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Código de confirmación: ${codigoConfirmacion}`, 105, 275, { align: "center" });
+    
+    // Guardar el PDF con nombre más descriptivo
+    const fechaFormateada = datosReserva.fecha.replace(/-/g, '');
+    const nombreLimpio = datosReserva.nombre.replace(/\s+/g, '_').toLowerCase();
+    const fileName = `ChapaSpa_Cita_${nombreLimpio}_${fechaFormateada}.pdf`;
     doc.save(fileName);
   };
 
@@ -513,7 +603,7 @@ const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
       if (!id_servicio) throw new Error("No se encontró el servicio seleccionado");
 
       // Obtener id_cliente del usuario
-      const id_cliente = usuario?.id_cliente || usuario?.id || usuario?.idCliente || usuario?.clienteId;
+      const id_cliente = usuario?.id || usuario?.id_cliente || usuario?.idCliente || usuario?.clienteId;
       if (!id_cliente) {
         console.error('Campos disponibles en usuario:', Object.keys(usuario || {}));
         throw new Error(`No se encontró el ID del cliente. Campos disponibles: ${Object.keys(usuario || {}).join(', ')}`);

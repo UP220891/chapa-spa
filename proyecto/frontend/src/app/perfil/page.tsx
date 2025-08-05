@@ -148,6 +148,14 @@ const Perfil = () => {
     if (usuarioLocal) {
       const user = JSON.parse(usuarioLocal);
       setUsuario(user);
+      
+      // Debug: mostrar todos los campos del usuario
+      console.log("=== USUARIO EN PERFIL ===");
+      console.log("Usuario completo:", user);
+      console.log("Campos disponibles:", Object.keys(user));
+      console.log("Es empleado:", !!user.nombre_empleado);
+      console.log("========================");
+      
       if (user.nombre_empleado) {
         setNombre(user.nombre_empleado);
         // Guardar el id de especialidad y horario si existen
@@ -161,9 +169,9 @@ const Perfil = () => {
           setHorariosSeleccionados([]);
         }
       } else {
-        setNombre(user.nombre_cliente || "");
+        setNombre(user.nombre || user.nombre_cliente || "");
         setTelefono(user.telefono || "");
-        setEmail(user.correo_electronico || user.email || "");
+        setEmail(user.email || user.correo_electronico || "");
         setFechaNacimiento(user.fecha_nacimiento || user.fecha_registro?.split("T")[0] || "");
       }
     }
