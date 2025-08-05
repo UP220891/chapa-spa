@@ -25,15 +25,39 @@ export function useAuth() {
       setIsAuth(authenticated);
       
       if (authenticated) {
-        const userData = getUserFromToken();
-        setUser(userData);
+        // Primero intentar obtener del localStorage
+        const userStr = localStorage.getItem('usuario');
+        if (userStr) {
+          try {
+            const userData = JSON.parse(userStr);
+            setUser(userData);
+          } catch {
+            // Si falla, intentar obtener del token
+            const userData = getUserFromToken();
+            setUser(userData);
+            // Guardar en localStorage para próxima vez
+            if (userData) {
+              localStorage.setItem('usuario', JSON.stringify(userData));
+            }
+          }
+        } else {
+          // Si no hay en localStorage, obtener del token
+          const userData = getUserFromToken();
+          setUser(userData);
+          // Guardar en localStorage para próxima vez
+          if (userData) {
+            localStorage.setItem('usuario', JSON.stringify(userData));
+          }
+        }
       } else {
         setUser(null);
+        localStorage.removeItem('usuario');
       }
     } catch (error) {
       console.error('Error checking authentication:', error);
       setIsAuth(false);
       setUser(null);
+      localStorage.removeItem('usuario');
     } finally {
       setLoading(false);
     }
@@ -42,6 +66,8 @@ export function useAuth() {
   const login = (userData: User) => {
     setIsAuth(true);
     setUser(userData);
+    // Guardar la información del usuario en localStorage para persistencia
+    localStorage.setItem('usuario', JSON.stringify(userData));
   };
 
   const logout = async () => {
@@ -49,6 +75,8 @@ export function useAuth() {
       await logoutService();
       setIsAuth(false);
       setUser(null);
+      // Limpiar también la información del usuario de localStorage
+      localStorage.removeItem('usuario');
     } catch (error) {
       console.error('Error during logout:', error);
     }

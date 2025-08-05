@@ -51,45 +51,251 @@ interface Cita {
 // Formulario para crear empleado
 const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose }) => {
   const [form, setForm] = useState({
-    nombre: '',
-    apellido: '',
+    nombre_empleado: '',
+    email: '',
+    password: '',
     telefono: '',
-    especialidad: ''
+    id_especialidad: 1,
+    rol: 'empleado' as 'empleado' | 'admin'  // Todos los empleados tienen rol empleado
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showNotification, setShowNotification] = useState(false);
+  const [especialidades, setEspecialidades] = useState<any[]>([]);
+
+  // Cargar especialidades al montar el componente
+  useEffect(() => {
+    async function cargarEspecialidades() {
+      try {
+        const { obtenerEspecialidades } = await import('../servicios/especialidadService');
+        const especialidadesData = await obtenerEspecialidades();
+        setEspecialidades(especialidadesData);
+      } catch (error) {
+        console.error('Error al cargar especialidades:', error);
+      }
+    }
+    cargarEspecialidades();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!form.nombre || !form.apellido || !form.telefono || !form.especialidad) {
-      alert('Completa todos los campos');
+    
+    // Validaciones más detalladas
+    if (!form.nombre_empleado?.trim()) {
+      setError('El nombre es obligatorio');
       return;
     }
-    // Aquí deberías llamar a tu servicio para guardar el empleado
-    // await crearEmpleado(form);
-    alert('Empleado guardado (simulado)');
-    onClose();
+    
+    if (!form.email?.trim()) {
+      setError('El email es obligatorio');
+      return;
+    }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError('El email no tiene un formato válido');
+      return;
+    }
+    
+    if (!form.password || form.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    
+    if (!form.telefono?.trim()) {
+      setError('El teléfono es obligatorio');
+      return;
+    }
+    
+    if (!form.id_especialidad || form.id_especialidad < 1) {
+      setError('Debe seleccionar una especialidad válida');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    console.log('📋 Datos del formulario antes del envío:', {
+      nombre_empleado: form.nombre_empleado,
+      email: form.email,
+      password: '***hidden***',
+      telefono: form.telefono,
+      id_especialidad: form.id_especialidad,
+      rol: form.rol
+    });
+
+    try {
+      const { crearEmpleado } = await import('../servicios/empleadosService');
+      await crearEmpleado({
+        nombre_empleado: form.nombre_empleado.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        telefono: form.telefono.trim(),
+        id_especialidad: form.id_especialidad,
+        rol: form.rol
+      });
+      
+      // Mostrar notificación de éxito
+      setNotification({ type: 'success', message: 'Empleado guardado exitosamente' });
+      setShowNotification(true);
+      setTimeout(() => {
+        setShowNotification(false);
+        setTimeout(() => {
+          setNotification(null);
+          onClose();
+        }, 400);
+      }, 3000);
+    } catch (error: any) {
+      console.error('Error al guardar empleado:', error);
+      setError(error.message || 'Error al guardar el empleado');
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label>Nombre</label>
-        <input type="text" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} required />
-      </div>
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label>Apellido</label>
-        <input type="text" value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))} required />
-      </div>
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label>Teléfono</label>
-        <input type="tel" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} required />
-      </div>
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label>Especialidad</label>
-        <input type="text" value={form.especialidad} onChange={e => setForm(f => ({ ...f, especialidad: e.target.value }))} required />
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-        <button type="button" className="btn-cancel-form" onClick={onClose} style={{ background: '#eee', color: '#204d47', borderRadius: '6px', padding: '8px 16px', border: 'none', fontWeight: 700 }}>Cancelar</button>
-        <button type="submit" className="btn-submit" style={{ background: '#357a6c', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none', fontWeight: 700 }}>Guardar</button>
-      </div>
-    </form>
+    <>
+      {notification && (
+        <div
+          className={`notification-popup ${notification.type} ${showNotification ? 'show' : 'hide'}`}
+          style={{ position: 'fixed', top: 30, left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+        >
+          <span className="notification-icon">
+            {notification.type === 'error' ? '⚠️' : '✅'}
+          </span>
+          {notification.message}
+          <button
+            className="notification-close"
+            onClick={() => {
+              setShowNotification(false);
+              setTimeout(() => setNotification(null), 400);
+            }}
+            aria-label="Cerrar notificación"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <div style={{ 
+            background: '#fee', 
+            color: '#c53030', 
+            padding: '8px 12px', 
+            borderRadius: '4px', 
+            marginBottom: '16px',
+            border: '1px solid #feb2b2'
+          }}>
+            {error}
+          </div>
+        )}
+        
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Nombre completo</label>
+          <input 
+            type="text" 
+            value={form.nombre_empleado} 
+            onChange={e => setForm(f => ({ ...f, nombre_empleado: e.target.value }))} 
+            required 
+            disabled={loading}
+            placeholder="Nombre completo del empleado"
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Email</label>
+          <input 
+            type="email" 
+            value={form.email} 
+            onChange={e => setForm(f => ({ ...f, email: e.target.value }))} 
+            required 
+            disabled={loading}
+            placeholder="correo@ejemplo.com"
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Contraseña</label>
+          <input 
+            type="password" 
+            value={form.password} 
+            onChange={e => setForm(f => ({ ...f, password: e.target.value }))} 
+            required 
+            disabled={loading}
+            placeholder="Mínimo 6 caracteres"
+            minLength={6}
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Teléfono</label>
+          <input 
+            type="tel" 
+            value={form.telefono} 
+            onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} 
+            required 
+            disabled={loading}
+            placeholder="Número de teléfono"
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>Especialidad</label>
+          <select 
+            value={form.id_especialidad} 
+            onChange={e => setForm(f => ({ ...f, id_especialidad: parseInt(e.target.value) }))}
+            required 
+            disabled={loading}
+          >
+            {especialidades.length > 0 ? (
+              especialidades.map(esp => (
+                <option key={esp.id_especialidad} value={esp.id_especialidad}>
+                  {esp.nombre_especialidad}
+                </option>
+              ))
+            ) : (
+              <>
+                <option value={1}>Masajes</option>
+                <option value={2}>Facial</option>
+                <option value={3}>Corporal</option>
+                <option value={4}>Relajación</option>
+              </>
+            )}
+          </select>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+          <button 
+            type="button" 
+            className="btn-cancel-form" 
+            onClick={onClose} 
+            style={{ 
+              background: '#eee', 
+              color: '#204d47', 
+              borderRadius: '6px', 
+              padding: '8px 16px', 
+              border: 'none', 
+              fontWeight: 700 
+            }}
+            disabled={loading}
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            className="btn-submit" 
+            style={{ 
+              background: loading ? '#ccc' : '#357a6c', 
+              color: 'white', 
+              borderRadius: '6px', 
+              padding: '8px 16px', 
+              border: 'none', 
+              fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
+            disabled={loading}
+          >
+            {loading ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </form>
+    </>
   );
 };
 // Formulario para crear cliente
@@ -1129,6 +1335,36 @@ const AdminCalendarContent = () => {
                 ))}
               </ul>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal para nuevo cliente */}
+      {showClientForm && (
+        <div className="modal-overlay" onClick={() => setShowClientForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
+                Nuevo Cliente
+              </h3>
+              <button className="close-btn" onClick={() => setShowClientForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
+            </div>
+            <ClienteForm onClose={() => setShowClientForm(false)} onClienteCreado={recargarClientes} />
+          </div>
+        </div>
+      )}
+
+      {/* Modal para nuevo empleado */}
+      {showEmployeeForm && (
+        <div className="modal-overlay" onClick={() => setShowEmployeeForm(false)}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
+                Nuevo Empleado
+              </h3>
+              <button className="close-btn" onClick={() => setShowEmployeeForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
+            </div>
+            <EmpleadoForm onClose={() => setShowEmployeeForm(false)} />
           </div>
         </div>
       )}

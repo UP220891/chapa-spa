@@ -18,11 +18,15 @@ export interface LoginData {
 
 export interface AuthResponse {
   token: string;
-  user: {
-    id: number;
-    nombre: string;
-    email: string;
-    tipo: string;
+  usuario: {
+    id_cliente?: number;
+    id_empleado?: number;
+    nombre_cliente?: string;
+    nombre_empleado?: string;
+    email?: string;
+    tipo_usuario: string;
+    id_especialidad?: number;
+    id_horarios?: number[];
   };
 }
 
@@ -62,7 +66,14 @@ export function getUserFromToken(): any {
   
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload;
+    
+    // Convertir la estructura del backend a la estructura esperada por el frontend
+    return {
+      id: payload.id_cliente || payload.id_empleado || payload.id || 0,
+      nombre: payload.nombre_cliente || payload.nombre_empleado || payload.nombre || '',
+      email: payload.email || '',
+      tipo: payload.tipo_usuario || 'cliente'
+    };
   } catch {
     return null;
   }

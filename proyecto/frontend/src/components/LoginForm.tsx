@@ -33,14 +33,34 @@ function LoginForm({ showHomeButton = false }) {
       const loginData: LoginData = { email, password };
       const response = await login(loginData);
       
+      // El backend devuelve 'usuario' y 'tipo_usuario', no 'user' y 'tipo'
+      console.log('Respuesta del login:', response);
+      
+      // Crear el objeto user con la estructura esperada
+      const user = {
+        id: response.usuario?.id_cliente || response.usuario?.id_empleado || 0,
+        nombre: response.usuario?.nombre_cliente || response.usuario?.nombre_empleado || '',
+        email: email,
+        tipo: response.usuario?.tipo_usuario || 'cliente'
+      };
+      
+      console.log('Usuario creado para autenticación:', user);
+      
       // Actualizar el estado de autenticación
-      authLogin(response.user);
+      authLogin(user);
       
       // Redireccionar según el tipo de usuario
-      const redirectPath = getRedirectPath(response.user.tipo);
-      window.location.href = redirectPath;
+      const redirectPath = getRedirectPath(user.tipo);
+      console.log(`Tipo de usuario: ${user.tipo}, Redirigiendo a: ${redirectPath}`);
+      
+      // Pequeño delay para asegurar que el estado se actualice
+      setTimeout(() => {
+        window.location.href = redirectPath;
+      }, 100);
       
     } catch (err: any) {
+      console.error('Error completo del login:', err);
+      console.error('Respuesta del servidor:', err.response?.data);
       setError(err.message || 'Error al iniciar sesión');
     }
     setLoading(false);

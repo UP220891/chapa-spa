@@ -17,8 +17,9 @@ router.get('/:id', empleadosController.obtenerEmpleado);
 router.post('/', [
   body('nombre_empleado').notEmpty().withMessage('El nombre es obligatorio'),
   body('email').isEmail().withMessage('El correo debe ser válido'),
+  body('password').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
   body('telefono').notEmpty().withMessage('El teléfono es obligatorio'),
-  body('fecha_registro').isISO8601().withMessage('La fecha de registro debe ser válida'),
+  body('id_especialidad').isInt().withMessage('La especialidad debe ser válida'),
 ], empleadosController.crearEmpleado);
 
 // Actualizar un empleado

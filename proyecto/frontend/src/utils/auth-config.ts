@@ -10,7 +10,7 @@ export function initializeAuth() {
 export function hasPermission(userType: string, requiredPermission: string): boolean {
   const permissions = {
     admin: ['read', 'write', 'delete', 'manage_users'],
-    empleado: ['read', 'write'],
+    empleado: ['read', 'write', 'delete', 'manage_users'], // Mismos permisos que admin
     cliente: ['read']
   };
 
@@ -22,11 +22,10 @@ export function hasPermission(userType: string, requiredPermission: string): boo
 export function getRedirectPath(userType: string): string {
   switch (userType) {
     case 'admin':
-      return '/admin/dashboard';
     case 'empleado':
-      return '/empleado/dashboard';
+      return '/Administrador';  // Página del calendario de administración
     case 'cliente':
-      return '/cliente/dashboard';
+      return '/';  // Página principal donde pueden ver servicios y hacer citas
     default:
       return '/login';
   }
