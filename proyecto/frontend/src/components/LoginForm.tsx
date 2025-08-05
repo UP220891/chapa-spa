@@ -1,4 +1,7 @@
 import React from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { login, LoginData } from '../servicios/authService';
+import { getRedirectPath } from '../utils/auth-config';
 
 function LoginForm({ showHomeButton = false }) {
   // Estados para email y password
@@ -7,6 +10,7 @@ function LoginForm({ showHomeButton = false }) {
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const { login: authLogin } = useAuth();
 
   // Manejar submit
   const validate = (email: string, password: string) => {
@@ -24,22 +28,20 @@ function LoginForm({ showHomeButton = false }) {
     }
     setError(null);
     setLoading(true);
+    
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('usuario', JSON.stringify(data.usuario));
-        window.location.href = '/';
-      } else {
-        setError(data.mensaje || 'Error al iniciar sesión');
-      }
-    } catch (err) {
-      setError('Error de conexión');
+      const loginData: LoginData = { email, password };
+      const response = await login(loginData);
+      
+      // Actualizar el estado de autenticación
+      authLogin(response.user);
+      
+      // Redireccionar según el tipo de usuario
+      const redirectPath = getRedirectPath(response.user.tipo);
+      window.location.href = redirectPath;
+      
+    } catch (err: any) {
+      setError(err.message || 'Error al iniciar sesión');
     }
     setLoading(false);
   };

@@ -1,5 +1,6 @@
 // servicios/clientesService.ts
 import axios from 'axios';
+import { getToken, isAuthenticated } from './authService';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -10,14 +11,21 @@ export interface Cliente {
   telefono: string;
   correo_electronico: string;
   fecha_registro: string;
+  fecha_nacimiento?: string;
+  password?: string;
 }
 
 export async function getClientes(): Promise<Cliente[]> {
   try {
     console.log('🔍 Obteniendo clientes de:', `${API_URL}/api/clientes`);
     
+    // Verificar si el usuario está autenticado
+    if (!isAuthenticated()) {
+      throw new Error('No estás autenticado. Inicia sesión primero.');
+    }
+    
     // Obtener token del localStorage
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (!token) {
       throw new Error('No hay token de autenticación. Inicia sesión primero.');
     }
@@ -39,6 +47,10 @@ export async function getClientes(): Promise<Cliente[]> {
       throw new Error('Token de autenticación inválido. Inicia sesión nuevamente.');
     }
     
+    if (error.response?.status === 403) {
+      throw new Error('No tienes permisos para acceder a esta información.');
+    }
+    
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       throw new Error('No se puede conectar con el servidor. Asegúrate de que el backend esté ejecutándose.');
     }
@@ -56,13 +68,25 @@ export async function getClientes(): Promise<Cliente[]> {
   }
 }
 
-export async function createCliente(data: Omit<Cliente, 'id_cliente'>): Promise<Cliente> {
+export async function createCliente(data: Omit<Cliente, 'id_cliente' | 'fecha_registro'>): Promise<Cliente> {
   try {
     console.log('📝 Creando cliente:', data);
+    
+    // Verificar si el usuario está autenticado
+    if (!isAuthenticated()) {
+      throw new Error('No estás autenticado. Inicia sesión primero.');
+    }
+    
+    // Obtener token del localStorage
+    const token = getToken();
+    if (!token) {
+      throw new Error('No hay token de autenticación. Inicia sesión primero.');
+    }
     
     const res = await axios.post(`${API_URL}/api/clientes`, data, {
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       timeout: 10000,
     });
@@ -71,6 +95,24 @@ export async function createCliente(data: Omit<Cliente, 'id_cliente'>): Promise<
     return res.data;
   } catch (error: any) {
     console.error('❌ Error al crear cliente:', error);
-    throw error;
+    
+    if (error.response?.status === 401) {
+      throw new Error('Token de autenticación inválido. Inicia sesión nuevamente.');
+    }
+    
+    if (error.response?.status === 403) {
+      throw new Error('No tienes permisos para crear clientes.');
+    }
+    
+    if (error.response?.status === 400) {
+      const errorMsg = error.response.data?.error || error.response.data?.detalle || 'Datos inválidos';
+      throw new Error(errorMsg);
+    }
+    
+    if (error.response) {
+      throw new Error(`Error del servidor: ${error.response.status}`);
+    }
+    
+    throw new Error(`Error de conexión: ${error.message}`);
   }
 }

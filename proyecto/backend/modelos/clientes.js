@@ -27,6 +27,8 @@ async function getClienteById(id_cliente) {
 // Crear un nuevo cliente
 async function createCliente(data) {
   try {
+    console.log('🔍 Datos que llegan al modelo:', data);
+    
     const pool = await poolPromise;
     let result = await pool.request()
       .input('nombre_cliente', sql.VarChar(50), data.nombre_cliente)
@@ -34,9 +36,13 @@ async function createCliente(data) {
       .input('telefono', sql.VarChar(50), data.telefono)
       .input('correo_electronico', sql.NVarChar(50), data.correo_electronico)
       .input('fecha_registro', sql.Date, data.fecha_registro)
-      .query('INSERT INTO T_Clientes (nombre_cliente, apellido_cliente, telefono, correo_electronico, fecha_registro) VALUES (@nombre_cliente, @apellido_cliente, @telefono, @correo_electronico, @fecha_registro)');
+      .input('fecha_nacimiento', sql.Date, data.fecha_nacimiento)
+      .query('INSERT INTO T_Clientes (nombre_cliente, apellido_cliente, telefono, correo_electronico, fecha_registro, fecha_nacimiento) OUTPUT INSERTED.id_cliente VALUES (@nombre_cliente, @apellido_cliente, @telefono, @correo_electronico, @fecha_registro, @fecha_nacimiento)');
+    
+    console.log('✅ Resultado de la inserción:', result);
     return result;
   } catch (err) {
+    console.error('❌ Error en createCliente:', err);
     throw err;
   }
 }
@@ -52,7 +58,8 @@ async function updateCliente(id_cliente, data) {
       .input('telefono', sql.VarChar(50), data.telefono)
       .input('correo_electronico', sql.NVarChar(50), data.correo_electronico)
       .input('fecha_registro', sql.Date, data.fecha_registro)
-      .query('UPDATE T_Clientes SET nombre_cliente = @nombre_cliente, apellido_cliente = @apellido_cliente, telefono = @telefono, correo_electronico = @correo_electronico, fecha_registro = @fecha_registro WHERE id_cliente = @id_cliente');
+      .input('fecha_nacimiento', sql.Date, data.fecha_nacimiento)
+      .query('UPDATE T_Clientes SET nombre_cliente = @nombre_cliente, apellido_cliente = @apellido_cliente, telefono = @telefono, correo_electronico = @correo_electronico, fecha_registro = @fecha_registro, fecha_nacimiento = @fecha_nacimiento WHERE id_cliente = @id_cliente');
     return result;
   } catch (err) {
     throw err;
