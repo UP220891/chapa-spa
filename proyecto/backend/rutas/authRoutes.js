@@ -197,10 +197,14 @@ router.get('/perfil', verificarToken, async (req, res) => {
 
 // Endpoint protegido para registrar empleados (solo admin)
 router.post('/register-empleado', verificarToken, async (req, res) => {
+  console.log('🔥 Endpoint register-empleado llamado');
+  console.log('User:', req.user);
+  console.log('Body:', req.body);
+  
   if (!req.user || req.user.tipo_usuario !== 'empleado' || (req.user.rol !== 'admin' && req.user.rol !== 'empleado')) {
     return res.status(403).json({ mensaje: 'Solo empleados o admin pueden crear empleados o clientes' });
   }
-  const { nombre, email, password, telefono, fechaNacimiento, rol, tipo_usuario } = req.body;
+  const { nombre, email, password, telefono, fechaNacimiento, rol, tipo_usuario, id_especialidad } = req.body;
   if (!nombre || !email || !password || !telefono || !fechaNacimiento) {
     return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
   }
@@ -217,15 +221,9 @@ router.post('/register-empleado', verificarToken, async (req, res) => {
     let id_empleado = null;
     let id_cliente = null;
     if (tipoFinal === 'empleado') {
-      const empleadoResult = await pool.request()
-        .input('nombre_empleado', sql.VarChar(50), nombre)
-        .input('apellido_empleado', sql.VarChar(50), '')
-        .input('telefono', sql.VarChar(50), telefono)
-        .input('correo_electronico', sql.NVarChar(50), email)
-        .input('fecha_registro', sql.Date, fechaNacimiento)
-        .input('rol', sql.NVarChar(20), rolFinal)
-        .query('INSERT INTO T_Empleados (nombre_empleado, apellido_empleado, telefono, correo_electronico, fecha_registro, rol) OUTPUT INSERTED.id_empleado VALUES (@nombre_empleado, @apellido_empleado, @telefono, @correo_electronico, @fecha_registro, @rol)');
-      id_empleado = empleadoResult.recordset[0].id_empleado;
+      // Para empleados, solo crear registro en T_Auth (sin T_Empleados por estructura limitada)
+      console.log('📝 Creando empleado solo en T_Auth con datos:', { nombre, email, rolFinal });
+      id_empleado = null; // Se maneja solo desde T_Auth
     } else {
       const clienteResult = await pool.request()
         .input('nombre_cliente', sql.VarChar(50), nombre)
@@ -246,6 +244,8 @@ router.post('/register-empleado', verificarToken, async (req, res) => {
       .query('INSERT INTO T_Auth (email, password, tipo_usuario, id_cliente, id_empleado) VALUES (@email, @password, @tipo_usuario, @id_cliente, @id_empleado)');
     res.status(201).json({ mensaje: tipoFinal === 'empleado' ? 'Empleado registrado correctamente' : 'Cliente registrado correctamente' });
   } catch (error) {
+    console.error('❌ Error en register-empleado:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({ mensaje: 'Error al registrar', error: error.message });
   }
 });

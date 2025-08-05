@@ -4,9 +4,29 @@ const { sql, poolPromise } = require('../config/database');
 async function getEmpleados() {
   try {
     const pool = await poolPromise;
-    const result = await pool.request().query('SELECT * FROM T_Empleados');
-    return result.recordset;
+    const result = await pool.request().query(`
+      SELECT 
+        e.id_empleado,
+        e.nombre_empleado,
+        e.id_especialidad,
+        e.rol,
+        esp.nombre_especialidad
+      FROM T_Empleados e
+      LEFT JOIN C_Especialidad esp ON e.id_especialidad = esp.id_especialidad
+    `);
+    
+    // Transformar los resultados para incluir el objeto especialidad anidado
+    const empleados = result.recordset.map(empleado => ({
+      ...empleado,
+      especialidad: empleado.nombre_especialidad ? {
+        id_especialidad: empleado.id_especialidad,
+        nombre_especialidad: empleado.nombre_especialidad
+      } : null
+    }));
+    
+    return empleados;
   } catch (err) {
+    console.error('Error en getEmpleados:', err);
     throw err;
   }
 }
@@ -17,9 +37,30 @@ async function getEmpleadoById(id_empleado) {
     const pool = await poolPromise;
     const result = await pool.request()
       .input('id_empleado', sql.Int, id_empleado)
-      .query('SELECT * FROM T_Empleados WHERE id_empleado = @id_empleado');
-    const empleado = result.recordset[0];
+      .query(`
+        SELECT 
+          e.id_empleado,
+          e.nombre_empleado,
+          e.id_especialidad,
+          e.rol,
+          esp.nombre_especialidad
+        FROM T_Empleados e
+        LEFT JOIN C_Especialidad esp ON e.id_especialidad = esp.id_especialidad
+        WHERE e.id_empleado = @id_empleado
+      `);
+    
+    let empleado = result.recordset[0];
     if (!empleado) return null;
+    
+    // Transformar para incluir el objeto especialidad anidado
+    empleado = {
+      ...empleado,
+      especialidad: empleado.nombre_especialidad ? {
+        id_especialidad: empleado.id_especialidad,
+        nombre_especialidad: empleado.nombre_especialidad
+      } : null
+    };
+    
     // Obtener los id_horarios
     const { getHorariosEmpleado } = require('./empleadohorarios');
     const id_horarios = await getHorariosEmpleado(id_empleado);
@@ -34,6 +75,7 @@ async function getEmpleadoById(id_empleado) {
     }
     return empleado;
   } catch (err) {
+    console.error('Error en getEmpleadoById:', err);
     throw err;
   }
 }
