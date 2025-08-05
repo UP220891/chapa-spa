@@ -64,6 +64,13 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose }) => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showNotification, setShowNotification] = useState(false);
   const [especialidades, setEspecialidades] = useState<any[]>([]);
+  const [fieldErrors, setFieldErrors] = useState({
+    nombre_empleado: false,
+    email: false,
+    password: false,
+    telefono: false,
+    id_especialidad: false
+  });
 
   // Cargar especialidades al montar el componente
   useEffect(() => {
@@ -79,37 +86,56 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose }) => {
     cargarEspecialidades();
   }, []);
 
+  // Función para validar campos en tiempo real
+  const validateField = (fieldName: string, value: any) => {
+    let isValid = true;
+    
+    switch (fieldName) {
+      case 'nombre_empleado':
+        isValid = value && value.trim().length > 0;
+        break;
+      case 'email':
+        isValid = value && value.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+        break;
+      case 'password':
+        isValid = value && value.length >= 6;
+        break;
+      case 'telefono':
+        isValid = value && value.trim().length > 0;
+        break;
+      case 'id_especialidad':
+        isValid = value && value > 0;
+        break;
+    }
+    
+    setFieldErrors(prev => ({
+      ...prev,
+      [fieldName]: !isValid
+    }));
+    
+    return isValid;
+  };
+
+  // Función para validar todos los campos
+  const validateAllFields = () => {
+    const errors = {
+      nombre_empleado: !form.nombre_empleado?.trim(),
+      email: !form.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email),
+      password: !form.password || form.password.length < 6,
+      telefono: !form.telefono?.trim(),
+      id_especialidad: !form.id_especialidad || form.id_especialidad < 1
+    };
+    
+    setFieldErrors(errors);
+    return !Object.values(errors).some(error => error);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // Validaciones más detalladas
-    if (!form.nombre_empleado?.trim()) {
-      setError('El nombre es obligatorio');
-      return;
-    }
-    
-    if (!form.email?.trim()) {
-      setError('El email es obligatorio');
-      return;
-    }
-    
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      setError('El email no tiene un formato válido');
-      return;
-    }
-    
-    if (!form.password || form.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    
-    if (!form.telefono?.trim()) {
-      setError('El teléfono es obligatorio');
-      return;
-    }
-    
-    if (!form.id_especialidad || form.id_especialidad < 1) {
-      setError('Debe seleccionar una especialidad válida');
+    // Validar todos los campos antes de enviar
+    if (!validateAllFields()) {
+      setError('Por favor completa todos los campos correctamente');
       return;
     }
 
@@ -196,53 +222,118 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose }) => {
           <input 
             type="text" 
             value={form.nombre_empleado} 
-            onChange={e => setForm(f => ({ ...f, nombre_empleado: e.target.value }))} 
+            onChange={e => {
+              const value = e.target.value;
+              setForm(f => ({ ...f, nombre_empleado: value }));
+              validateField('nombre_empleado', value);
+            }}
+            onBlur={e => validateField('nombre_empleado', e.target.value)}
             required 
             disabled={loading}
             placeholder="Nombre completo del empleado"
+            style={{
+              borderColor: fieldErrors.nombre_empleado ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.nombre_empleado ? '#fed7d7' : '#fff'
+            }}
           />
+          {fieldErrors.nombre_empleado && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              El nombre es obligatorio
+            </span>
+          )}
         </div>
         <div className="form-group" style={{ marginBottom: '16px' }}>
           <label>Email</label>
           <input 
             type="email" 
             value={form.email} 
-            onChange={e => setForm(f => ({ ...f, email: e.target.value }))} 
+            onChange={e => {
+              const value = e.target.value;
+              setForm(f => ({ ...f, email: value }));
+              validateField('email', value);
+            }}
+            onBlur={e => validateField('email', e.target.value)}
             required 
             disabled={loading}
             placeholder="correo@ejemplo.com"
+            style={{
+              borderColor: fieldErrors.email ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.email ? '#fed7d7' : '#fff'
+            }}
           />
+          {fieldErrors.email && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              Ingresa un email válido
+            </span>
+          )}
         </div>
         <div className="form-group" style={{ marginBottom: '16px' }}>
           <label>Contraseña</label>
           <input 
             type="password" 
             value={form.password} 
-            onChange={e => setForm(f => ({ ...f, password: e.target.value }))} 
+            onChange={e => {
+              const value = e.target.value;
+              setForm(f => ({ ...f, password: value }));
+              validateField('password', value);
+            }}
+            onBlur={e => validateField('password', e.target.value)}
             required 
             disabled={loading}
             placeholder="Mínimo 6 caracteres"
             minLength={6}
+            style={{
+              borderColor: fieldErrors.password ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.password ? '#fed7d7' : '#fff'
+            }}
           />
+          {fieldErrors.password && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              La contraseña debe tener al menos 6 caracteres
+            </span>
+          )}
         </div>
         <div className="form-group" style={{ marginBottom: '16px' }}>
           <label>Teléfono</label>
           <input 
             type="tel" 
             value={form.telefono} 
-            onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} 
+            onChange={e => {
+              const value = e.target.value;
+              setForm(f => ({ ...f, telefono: value }));
+              validateField('telefono', value);
+            }}
+            onBlur={e => validateField('telefono', e.target.value)}
             required 
             disabled={loading}
             placeholder="Número de teléfono"
+            style={{
+              borderColor: fieldErrors.telefono ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.telefono ? '#fed7d7' : '#fff'
+            }}
           />
+          {fieldErrors.telefono && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              El teléfono es obligatorio
+            </span>
+          )}
         </div>
         <div className="form-group" style={{ marginBottom: '16px' }}>
           <label>Especialidad</label>
           <select 
             value={form.id_especialidad} 
-            onChange={e => setForm(f => ({ ...f, id_especialidad: parseInt(e.target.value) }))}
+            onChange={e => {
+              const value = parseInt(e.target.value);
+              setForm(f => ({ ...f, id_especialidad: value }));
+              validateField('id_especialidad', value);
+            }}
+            onBlur={e => validateField('id_especialidad', parseInt(e.target.value))}
             required 
             disabled={loading}
+            style={{
+              borderColor: fieldErrors.id_especialidad ? '#e53e3e' : '#ddd',
+              backgroundColor: fieldErrors.id_especialidad ? '#fed7d7' : '#fff'
+            }}
           >
             {especialidades.length > 0 ? (
               especialidades.map(esp => (
@@ -259,6 +350,11 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose }) => {
               </>
             )}
           </select>
+          {fieldErrors.id_especialidad && (
+            <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px' }}>
+              Selecciona una especialidad
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
           <button 
@@ -281,15 +377,15 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose }) => {
             type="submit" 
             className="btn-submit" 
             style={{ 
-              background: loading ? '#ccc' : '#357a6c', 
+              background: loading || Object.values(fieldErrors).some(error => error) ? '#ccc' : '#357a6c', 
               color: 'white', 
               borderRadius: '6px', 
               padding: '8px 16px', 
               border: 'none', 
               fontWeight: 700,
-              cursor: loading ? 'not-allowed' : 'pointer'
+              cursor: loading || Object.values(fieldErrors).some(error => error) ? 'not-allowed' : 'pointer'
             }}
-            disabled={loading}
+            disabled={loading || Object.values(fieldErrors).some(error => error)}
           >
             {loading ? 'Guardando...' : 'Guardar'}
           </button>
@@ -313,11 +409,80 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreado }) =
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showNotification, setShowNotification] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({
+    nombre: false,
+    apellido: false,
+    telefono: false,
+    correo: false,
+    fechaNacimiento: false,
+    password: false
+  });
+
+  // Función para validar campos en tiempo real
+  const validateField = (fieldName: string, value: any) => {
+    let isValid = true;
+    
+    switch (fieldName) {
+      case 'nombre':
+        isValid = value && value.trim().length > 0;
+        break;
+      case 'apellido':
+        isValid = value && value.trim().length > 0;
+        break;
+      case 'telefono':
+        isValid = value && value.trim().length > 0 && /^[\d\s\-\+\(\)]+$/.test(value.trim());
+        break;
+      case 'correo':
+        isValid = value && value.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+        break;
+      case 'fechaNacimiento':
+        if (value) {
+          const birthDate = new Date(value);
+          const today = new Date();
+          const age = today.getFullYear() - birthDate.getFullYear();
+          isValid = age >= 18 && age <= 100; // Validar edad entre 18 y 100 años
+        } else {
+          isValid = false;
+        }
+        break;
+      case 'password':
+        isValid = value && value.length >= 6;
+        break;
+    }
+    
+    setFieldErrors(prev => ({
+      ...prev,
+      [fieldName]: !isValid
+    }));
+    
+    return isValid;
+  };
+
+  // Función para validar todos los campos
+  const validateAllFields = () => {
+    const today = new Date();
+    const birthDate = form.fechaNacimiento ? new Date(form.fechaNacimiento) : null;
+    const age = birthDate ? today.getFullYear() - birthDate.getFullYear() : 0;
+    
+    const errors = {
+      nombre: !form.nombre?.trim(),
+      apellido: !form.apellido?.trim(),
+      telefono: !form.telefono?.trim() || !/^[\d\s\-\+\(\)]+$/.test(form.telefono.trim()),
+      correo: !form.correo?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo),
+      fechaNacimiento: !form.fechaNacimiento || !birthDate || age < 18 || age > 100,
+      password: !form.password || form.password.length < 6
+    };
+    
+    setFieldErrors(errors);
+    return !Object.values(errors).some(error => error);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!form.nombre || !form.apellido || !form.telefono || !form.correo || !form.fechaNacimiento || !form.password) {
-      setError('Completa todos los campos');
+    
+    // Validar todos los campos antes de enviar
+    if (!validateAllFields()) {
+      setError('Por favor completa todos los campos correctamente');
       return;
     }
 
@@ -398,61 +563,148 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreado }) =
         <input 
           type="text" 
           value={form.nombre} 
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} 
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, nombre: value }));
+            validateField('nombre', value);
+          }}
+          onBlur={e => validateField('nombre', e.target.value)}
           required 
           disabled={loading}
+          style={{
+            borderColor: fieldErrors.nombre ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.nombre ? '#fed7d7' : '#fff'
+          }}
         />
+        {fieldErrors.nombre && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            El nombre es obligatorio
+          </span>
+        )}
       </div>
       <div className="form-group" style={{ marginBottom: '16px' }}>
         <label>Apellido</label>
         <input 
           type="text" 
           value={form.apellido} 
-          onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))} 
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, apellido: value }));
+            validateField('apellido', value);
+          }}
+          onBlur={e => validateField('apellido', e.target.value)}
           required 
           disabled={loading}
+          style={{
+            borderColor: fieldErrors.apellido ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.apellido ? '#fed7d7' : '#fff'
+          }}
         />
+        {fieldErrors.apellido && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            El apellido es obligatorio
+          </span>
+        )}
       </div>
       <div className="form-group" style={{ marginBottom: '16px' }}>
         <label>Teléfono</label>
         <input 
           type="tel" 
           value={form.telefono} 
-          onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} 
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, telefono: value }));
+            validateField('telefono', value);
+          }}
+          onBlur={e => validateField('telefono', e.target.value)}
           required 
           disabled={loading}
+          style={{
+            borderColor: fieldErrors.telefono ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.telefono ? '#fed7d7' : '#fff'
+          }}
         />
+        {fieldErrors.telefono && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            Ingresa un número de teléfono válido
+          </span>
+        )}
       </div>
       <div className="form-group" style={{ marginBottom: '16px' }}>
         <label>Correo</label>
         <input 
           type="email" 
           value={form.correo} 
-          onChange={e => setForm(f => ({ ...f, correo: e.target.value }))} 
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, correo: value }));
+            validateField('correo', value);
+          }}
+          onBlur={e => validateField('correo', e.target.value)}
           required 
           disabled={loading}
+          style={{
+            borderColor: fieldErrors.correo ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.correo ? '#fed7d7' : '#fff'
+          }}
         />
+        {fieldErrors.correo && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            Ingresa un email válido
+          </span>
+        )}
       </div>
       <div className="form-group" style={{ marginBottom: '16px' }}>
         <label>Fecha de Nacimiento</label>
         <input 
           type="date" 
           value={form.fechaNacimiento} 
-          onChange={e => setForm(f => ({ ...f, fechaNacimiento: e.target.value }))} 
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, fechaNacimiento: value }));
+            validateField('fechaNacimiento', value);
+          }}
+          onBlur={e => validateField('fechaNacimiento', e.target.value)}
           required 
           disabled={loading}
+          style={{
+            borderColor: fieldErrors.fechaNacimiento ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.fechaNacimiento ? '#fed7d7' : '#fff'
+          }}
+          max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+          min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
         />
+        {fieldErrors.fechaNacimiento && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            Debe ser mayor de 18 años
+          </span>
+        )}
       </div>
       <div className="form-group" style={{ marginBottom: '16px' }}>
         <label>Contraseña</label>
         <input 
           type="password" 
           value={form.password} 
-          onChange={e => setForm(f => ({ ...f, password: e.target.value }))} 
+          onChange={e => {
+            const value = e.target.value;
+            setForm(f => ({ ...f, password: value }));
+            validateField('password', value);
+          }}
+          onBlur={e => validateField('password', e.target.value)}
           required 
           disabled={loading}
           placeholder="Contraseña para acceder al sistema"
+          minLength={6}
+          style={{
+            borderColor: fieldErrors.password ? '#e53e3e' : '#ddd',
+            backgroundColor: fieldErrors.password ? '#fed7d7' : '#fff'
+          }}
         />
+        {fieldErrors.password && (
+          <span style={{ color: '#e53e3e', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+            La contraseña debe tener al menos 6 caracteres
+          </span>
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
         <button 
@@ -475,15 +727,15 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ onClose, onClienteCreado }) =
           type="submit" 
           className="btn-submit" 
           style={{ 
-            background: loading ? '#ccc' : '#357a6c', 
+            background: loading || Object.values(fieldErrors).some(error => error) ? '#ccc' : '#357a6c', 
             color: 'white', 
             borderRadius: '6px', 
             padding: '8px 16px', 
             border: 'none', 
             fontWeight: 700,
-            cursor: loading ? 'not-allowed' : 'pointer'
+            cursor: loading || Object.values(fieldErrors).some(error => error) ? 'not-allowed' : 'pointer'
           }}
-          disabled={loading}
+          disabled={loading || Object.values(fieldErrors).some(error => error)}
         >
           {loading ? 'Guardando...' : 'Guardar'}
         </button>

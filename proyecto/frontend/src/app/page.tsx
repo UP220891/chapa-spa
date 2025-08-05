@@ -47,13 +47,11 @@ export default function Home() {
       {/* Hero principal con logo visual */}
       <div style={{width: '100vw', textAlign: 'center', marginBottom: '1.5rem', padding: 0}}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.2rem', marginBottom: '1.5rem' }}>
-          <div style={{ background: '#fff', borderRadius: '50%', padding: '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img
-              src="/images/logo_chapaspa.png"
-              alt="Logo ChapaSPA"
-              style={{ height: '100px', width: '100px', objectFit: 'contain', borderRadius: '50%' }}
-            />
-          </div>
+          <img
+            src="/images/logo_chapaspa.png"
+            alt="Logo ChapaSPA"
+            style={{ height: '75px', width: '75px', objectFit: 'contain', borderRadius: '50%' }}
+          />
           <h1
             style={{
               color: '#204d47',
