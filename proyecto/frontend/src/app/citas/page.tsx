@@ -14,7 +14,7 @@ export default function CitasPage() {
   return (
     <>
       <Navbar usuario={usuario} />
-      <CitasForm />
+      <CitasForm usuario={usuario} />
     </>
   );
 }

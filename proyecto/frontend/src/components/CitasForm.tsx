@@ -2,10 +2,15 @@
 import "../styles/notification.css";
 
 import React from "react";
+import jsPDF from "jspdf";
 
 import { CitaForm, crearCita } from "@/servicios/citasService";
 
-const CitasForm: React.FC = () => {
+interface CitasFormProps {
+  usuario?: any;
+}
+
+const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
   const [servicios, setServicios] = React.useState<any[]>([]);
   const [nombreServicio, setNombreServicio] = React.useState<string>("");
   const [servicioInicial, setServicioInicial] = React.useState<string>("");
@@ -71,26 +76,42 @@ const CitasForm: React.FC = () => {
   }, [servicioInicial]);
 
   React.useEffect(() => {
-    if (typeof window !== "undefined") {
+    let user = usuarioProp; // Usar el usuario del prop primero
+    
+    if (!user && typeof window !== "undefined") {
       const usuarioLocal = localStorage.getItem("usuario");
       if (usuarioLocal) {
         try {
-          const user = JSON.parse(usuarioLocal);
-          setUsuario(user);
-          setBloqueado(false);
+          user = JSON.parse(usuarioLocal);
         } catch {
-          setUsuario(null);
-          setBloqueado(true);
+          user = null;
         }
-      } else {
-        setUsuario(null);
-        setBloqueado(true);
       }
     }
-  }, []);
+    
+    if (user) {
+      setUsuario(user);
+      setBloqueado(false);
+      
+      // Autocompletar datos del usuario en el formulario
+      console.log('Todos los campos del usuario:', Object.keys(user));
+      console.log('Valores del usuario:', user);
+      setForm(prev => ({
+        ...prev,
+        nombre: user.nombre || user.nombre_cliente || "",
+        email: user.email || user.correo_electronico || "",
+        numero: user.telefono || user.numero || user.phone || ""
+      }));
+    } else {
+      setUsuario(null);
+      setBloqueado(true);
+    }
+  }, [usuarioProp]);
 
   // Obtener horarios reales desde el backend
   const [horarios, setHorarios] = React.useState<any[]>([]);
+  const [citasExistentes, setCitasExistentes] = React.useState<any[]>([]);
+  
   React.useEffect(() => {
     async function cargarHorarios() {
       try {
@@ -104,11 +125,71 @@ const CitasForm: React.FC = () => {
     cargarHorarios();
   }, []);
 
+  // Cargar citas existentes para validar disponibilidad
+  React.useEffect(() => {
+    async function cargarCitas() {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL;
+        const res = await fetch(`${API_URL}/api/citas`);
+        const data = await res.json();
+        setCitasExistentes(data);
+        console.log('Citas existentes:', data);
+      } catch (error) {
+        console.error('Error al cargar citas:', error);
+      }
+    }
+    cargarCitas();
+  }, []);
+
+  // Verificar si una fecha y hora específica está disponible
+  const verificarDisponibilidad = (fecha: string, hora: string): boolean => {
+    if (!fecha || !hora) return false;
+    
+    // Buscar si ya existe una cita para esa fecha y hora
+    const citaExistente = citasExistentes.find(cita => {
+      const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+      const horaCita = cita.hora;
+      return fechaCita === fecha && horaCita === hora;
+    });
+    
+    return !citaExistente; // Retorna true si NO existe una cita (está disponible)
+  };
+
+  // Verificar si una fecha es válida (no en el pasado)
+  const esFechaValida = (fecha: string): boolean => {
+    if (!fecha) return false;
+    
+    const fechaSeleccionada = new Date(fecha);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Resetear las horas para comparar solo fechas
+    
+    return fechaSeleccionada >= hoy;
+  };
+
+  // Obtener horas ocupadas para una fecha específica
+  const getHorasOcupadas = (fecha: string): string[] => {
+    if (!fecha) return [];
+    
+    return citasExistentes
+      .filter(cita => {
+        const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+        return fechaCita === fecha;
+      })
+      .map(cita => cita.hora);
+  };
+
   // Filtrar horarios por día seleccionado
   const getHora = (str: string) => {
-    // Si el string ya es tipo '09:00:00.000Z', extrae solo la hora
+    // Si el string ya es tipo '1970-01-01T14:00:00.000Z', extrae solo la hora
     if (typeof str === 'string' && str.includes('T')) {
-      return str.slice(11, 16); // 'HH:MM'
+      const date = new Date(str);
+      if (!isNaN(date.getTime())) {
+        // Usar UTC para evitar problemas de zona horaria
+        const hours = date.getUTCHours().toString().padStart(2, '0');
+        const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+      }
+      return str.slice(11, 16); // Fallback: 'HH:MM'
     }
     // Si es tipo '09:00', regresa tal cual
     if (typeof str === 'string' && str.length === 5) {
@@ -117,41 +198,70 @@ const CitasForm: React.FC = () => {
     // Fallback: usar Date
     const date = new Date(str);
     if (isNaN(date.getTime())) return '';
-    return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const hours = date.getUTCHours().toString().padStart(2, '0');
+    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
   };
-  // Generar las horas disponibles en intervalos de 1 hora
-  const generarHoras = (inicio: string, fin: string) => {
+
+  // Generar las horas disponibles basado en los horarios reales (incluir hora inicio y fin)
+  const generarHorasDeHorarios = (horariosDelDia: any[]) => {
     const horas: string[] = [];
-    let h = parseInt(inicio.slice(0,2));
-    let m = parseInt(inicio.slice(3,5));
-    const hFin = parseInt(fin.slice(0,2));
-    while (h <= hFin) {
-      const horaStr = `${h.toString().padStart(2,'0')}:00`;
-      horas.push(horaStr);
-      h++;
-    }
-    return horas;
+    horariosDelDia.forEach(horario => {
+      const inicio = getHora(horario.hora_inicio);
+      const fin = getHora(horario.hora_fin);
+      
+      if (inicio) {
+        // Agregar la hora de inicio
+        if (!horas.includes(inicio)) {
+          horas.push(inicio);
+        }
+      }
+      
+      if (fin && fin !== inicio) {
+        // Agregar la hora de fin si es diferente al inicio
+        if (!horas.includes(fin)) {
+          horas.push(fin);
+        }
+      }
+    });
+    
+    return horas.sort();
   };
 
   // Filtrar horarios por día seleccionado y generar opciones de hora
   const getHorasDisponibles = () => {
-    if (!form.fecha) return [];
+    if (!form.fecha || !horarios.length) return [];
+    
+    // Verificar si la fecha es válida (no en el pasado)
+    if (!esFechaValida(form.fecha)) return [];
+    
     const [year, month, day] = form.fecha.split('-').map(Number);
     const fecha = new Date(year, month - 1, day);
     const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     const diaActual = diasSemana[fecha.getDay()];
-    const horarioDia = horarios.find(h => h.dia === diaActual);
-    if (!horarioDia) return [];
-    const inicio = getHora(horarioDia.hora_inicio);
-    const fin = getHora(horarioDia.hora_fin);
-    // Solo mostrar si es día válido
-    if (["Lunes","Martes","Miércoles","Jueves","Viernes"].includes(diaActual)) {
-      return generarHoras('09:00', '18:00');
+    
+    // Obtener todos los horarios para el día seleccionado
+    const horariosDelDia = horarios.filter(h => h.dia === diaActual);
+    
+    if (horariosDelDia.length === 0) {
+      console.log(`No hay horarios para ${diaActual}`);
+      return [];
     }
-    if (diaActual === "Sábado") {
-      return generarHoras('10:00', '14:00');
-    }
-    return [];
+    
+    console.log(`Horarios encontrados para ${diaActual}:`, horariosDelDia);
+    
+    // Generar horas basadas en los horarios reales del backend
+    const horasGeneradas = generarHorasDeHorarios(horariosDelDia);
+    
+    // Obtener horas ya ocupadas para la fecha seleccionada
+    const horasOcupadas = getHorasOcupadas(form.fecha);
+    console.log(`Horas ocupadas para ${form.fecha}:`, horasOcupadas);
+    
+    // Filtrar horas disponibles (excluir las ocupadas)
+    const horasDisponibles = horasGeneradas.filter(hora => !horasOcupadas.includes(hora));
+    console.log(`Horas disponibles:`, horasDisponibles);
+    
+    return horasDisponibles;
   };
   const [notification, setNotification] = React.useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [showNotification, setShowNotification] = React.useState(false);
@@ -179,6 +289,76 @@ const CitasForm: React.FC = () => {
     servicio: false
   });
 
+  // Función para generar PDF de la cita
+  const generarPDFCita = (datosReserva: any) => {
+    const doc = new jsPDF();
+    
+    // Configurar fuente y título
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("CONFIRMACIÓN DE CITA", 105, 20, { align: "center" });
+    
+    // Línea decorativa
+    doc.setLineWidth(0.5);
+    doc.line(20, 25, 190, 25);
+    
+    // Información del cliente
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("DATOS DEL CLIENTE", 20, 40);
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Nombre: ${datosReserva.nombre}`, 20, 50);
+    doc.text(`Email: ${datosReserva.email}`, 20, 58);
+    doc.text(`Teléfono: ${datosReserva.numero}`, 20, 66);
+    
+    // Información de la cita
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("DETALLES DE LA CITA", 20, 85);
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Servicio: ${datosReserva.servicio}`, 20, 95);
+    doc.text(`Fecha: ${new Date(datosReserva.fecha).toLocaleDateString('es-ES', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })}`, 20, 103);
+    doc.text(`Hora: ${datosReserva.hora}`, 20, 111);
+    if (datosReserva.notas) {
+      doc.text(`Notas: ${datosReserva.notas}`, 20, 119);
+    }
+    
+    // Información del spa
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("INFORMACIÓN DEL SPA", 20, 140);
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Dirección: [Tu dirección aquí]", 20, 150);
+    doc.text("Teléfono: [Tu teléfono aquí]", 20, 158);
+    doc.text("Email: [Tu email aquí]", 20, 166);
+    
+    // Política de cancelación
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.text("POLÍTICA DE CANCELACIÓN:", 20, 185);
+    doc.text("Por favor, cancele su cita con al menos 24 horas de anticipación.", 20, 192);
+    doc.text("Gracias por elegir nuestros servicios.", 20, 199);
+    
+    // Fecha de generación
+    doc.setFontSize(8);
+    doc.text(`Generado el: ${new Date().toLocaleString('es-ES')}`, 20, 270);
+    
+    // Guardar el PDF
+    const fileName = `cita_${datosReserva.nombre.replace(/\s+/g, '_')}_${datosReserva.fecha}.pdf`;
+    doc.save(fileName);
+  };
+
   // Función para validar campos en tiempo real
   const validateField = (fieldName: string, value: any) => {
     let isValid = true;
@@ -195,16 +375,17 @@ const CitasForm: React.FC = () => {
         break;
       case 'fecha':
         if (value) {
-          const selectedDate = new Date(value);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          isValid = selectedDate >= today;
+          isValid = esFechaValida(value);
         } else {
           isValid = false;
         }
         break;
       case 'hora':
-        isValid = value && value !== '' && value !== '00:00';
+        if (value && form.fecha) {
+          isValid = value !== '' && value !== '00:00' && verificarDisponibilidad(form.fecha, value);
+        } else {
+          isValid = value && value !== '' && value !== '00:00';
+        }
         break;
       case 'servicio':
         isValid = value && value.trim().length > 0;
@@ -221,16 +402,12 @@ const CitasForm: React.FC = () => {
 
   // Función para validar todos los campos
   const validateAllFields = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDate = form.fecha ? new Date(form.fecha) : null;
-    
     const errors = {
       nombre: !form.nombre?.trim(),
       email: !form.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email),
       numero: !form.numero?.trim() || !/^[\d\s\-\+\(\)]+$/.test(form.numero.trim()),
-      fecha: !form.fecha || !selectedDate || selectedDate < today,
-      hora: !form.hora || form.hora === '' || form.hora === '00:00',
+      fecha: !form.fecha || !esFechaValida(form.fecha),
+      hora: !form.hora || form.hora === '' || form.hora === '00:00' || !verificarDisponibilidad(form.fecha, form.hora),
       servicio: !form.servicio?.trim()
     };
     
@@ -250,10 +427,27 @@ const CitasForm: React.FC = () => {
         const fecha = new Date(year, month - 1, day);
         const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
         const diaActual = diasSemana[fecha.getDay()];
-        // Buscar el horario exacto por día y hora
-        const horarioExacto = horarios.find(h => h.dia === diaActual && (h.hora_inicio?.slice(0,5) === value || (h.hora_inicio?.match(/T(\d{2}:\d{2})/)?.[1] === value)));
-        if (horarioExacto) {
-          idHorario = String(horarioExacto.id_horario);
+        
+        // Buscar el horario que tenga esta hora (ya sea como inicio o fin) para este día
+        const horarioDelDia = horarios.find(h => {
+          if (h.dia !== diaActual) return false;
+          
+          const horaInicio = getHora(h.hora_inicio);
+          const horaFin = getHora(h.hora_fin);
+          return horaInicio === value || horaFin === value;
+        });
+        
+        if (horarioDelDia) {
+          idHorario = String(horarioDelDia.id_horario);
+        }
+        
+        // Verificar disponibilidad antes de establecer la hora
+        if (!verificarDisponibilidad(form.fecha, value)) {
+          setNotification({ 
+            type: 'error', 
+            message: `La hora ${value} ya está ocupada para la fecha seleccionada. Por favor elige otra hora.` 
+          });
+          return;
         }
       }
       setForm({
@@ -263,22 +457,19 @@ const CitasForm: React.FC = () => {
       });
       validateField('hora', value);
     } else if (fieldName === "fecha") {
-      // Si cambia la fecha y ya hay hora seleccionada, asigna el id_horario del horario del día
-      let idHorario = form.id_horario;
-      if (value && form.hora) {
-        const [year, month, day] = value.split('-').map(Number);
-        const fecha = new Date(year, month - 1, day);
-        const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-        const diaActual = diasSemana[fecha.getDay()];
-        const horarioDia = horarios.find(h => h.dia === diaActual);
-        if (horarioDia) {
-          idHorario = String(horarioDia.id_horario);
-        } else {
-          idHorario = "";
-        }
+      // Si cambia la fecha, resetear la hora y el id_horario, y validar la nueva fecha
+      if (!esFechaValida(value)) {
+        setNotification({ 
+          type: 'error', 
+          message: 'No puedes seleccionar una fecha en el pasado.' 
+        });
       }
-      setForm({ ...form, fecha: value, id_horario: idHorario });
+      setForm({ ...form, fecha: value, hora: "", id_horario: "" });
       validateField('fecha', value);
+      // También revalidar la hora si ya tenía una seleccionada
+      if (form.hora) {
+        validateField('hora', '');
+      }
     } else {
       setForm({ ...form, [fieldName]: value });
       validateField(fieldName, value);
@@ -294,6 +485,24 @@ const CitasForm: React.FC = () => {
       return;
     }
     
+    // Validación adicional de disponibilidad en tiempo real
+    if (!verificarDisponibilidad(form.fecha, form.hora)) {
+      setNotification({ 
+        type: 'error', 
+        message: `La hora ${form.hora} del ${form.fecha} ya no está disponible. Por favor selecciona otro horario.` 
+      });
+      return;
+    }
+    
+    // Validar que la fecha no sea en el pasado
+    if (!esFechaValida(form.fecha)) {
+      setNotification({ 
+        type: 'error', 
+        message: 'No puedes hacer una cita en el pasado. Por favor selecciona una fecha válida.' 
+      });
+      return;
+    }
+    
     setLoading(true);
     setMensaje("");
     setError("");
@@ -304,8 +513,11 @@ const CitasForm: React.FC = () => {
       if (!id_servicio) throw new Error("No se encontró el servicio seleccionado");
 
       // Obtener id_cliente del usuario
-      const id_cliente = usuario?.id_cliente;
-      if (!id_cliente) throw new Error("No se encontró el id_cliente del usuario");
+      const id_cliente = usuario?.id_cliente || usuario?.id || usuario?.idCliente || usuario?.clienteId;
+      if (!id_cliente) {
+        console.error('Campos disponibles en usuario:', Object.keys(usuario || {}));
+        throw new Error(`No se encontró el ID del cliente. Campos disponibles: ${Object.keys(usuario || {}).join(', ')}`);
+      }
 
       // Asignar id_empleado por defecto (puedes cambiar la lógica si tienes selección de empleado)
       const id_empleado = 1; // Por defecto, o puedes obtenerlo de la base de datos o del usuario
@@ -342,7 +554,30 @@ const CitasForm: React.FC = () => {
       };
 
       await crearCita(citaPayload);
-      setNotification({ type: 'success', message: '¡Cita reservada exitosamente!' });
+      
+      // Recargar citas existentes para actualizar disponibilidad
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL;
+        const res = await fetch(`${API_URL}/api/citas`);
+        const data = await res.json();
+        setCitasExistentes(data);
+      } catch (error) {
+        console.error('Error al recargar citas:', error);
+      }
+      
+      // Generar PDF con los datos de la reserva
+      const datosReserva = {
+        nombre: form.nombre,
+        email: form.email,
+        numero: form.numero,
+        fecha: form.fecha,
+        hora: form.hora,
+        servicio: form.servicio,
+        notas: form.notas
+      };
+      generarPDFCita(datosReserva);
+      
+      setNotification({ type: 'success', message: '¡Cita reservada exitosamente! Se ha descargado el PDF de confirmación.' });
       setForm({ nombre: "", email: "", numero: "", fecha: "", id_horario: "", hora: "", servicio: "", notas: "" });
     } catch (err: any) {
       setNotification({ type: 'error', message: err?.message || "Error al reservar la cita" });
@@ -520,9 +755,26 @@ const CitasForm: React.FC = () => {
               </div>
               <div className="register-col">
                 <label htmlFor="id_horario" className="register-label">Horario</label>
-                {form.fecha && getHorasDisponibles().length === 0 ? (
+                {!form.fecha ? (
+                  <div style={{ color: '#666', fontStyle: 'italic', marginTop: 8 }}>
+                    Primero selecciona una fecha
+                  </div>
+                ) : !esFechaValida(form.fecha) ? (
                   <div style={{ color: 'red', fontWeight: 500, marginTop: 8 }}>
-                    No hay horarios disponibles para el día seleccionado.
+                    La fecha seleccionada no es válida
+                  </div>
+                ) : getHorasDisponibles().length === 0 ? (
+                  <div style={{ color: 'red', fontWeight: 500, marginTop: 8 }}>
+                    {horarios.filter(h => {
+                      const [year, month, day] = form.fecha.split('-').map(Number);
+                      const fecha = new Date(year, month - 1, day);
+                      const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+                      const diaActual = diasSemana[fecha.getDay()];
+                      return h.dia === diaActual;
+                    }).length === 0 
+                      ? 'No trabajamos este día de la semana'
+                      : 'Todos los horarios están ocupados para este día'
+                    }
                   </div>
                 ) : (
                   <>
@@ -547,7 +799,10 @@ const CitasForm: React.FC = () => {
                     </select>
                     {fieldErrors.hora && (
                       <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
-                        Selecciona una hora
+                        {form.hora && !verificarDisponibilidad(form.fecha, form.hora) 
+                          ? 'Esta hora ya está ocupada'
+                          : 'Selecciona una hora'
+                        }
                       </span>
                     )}
                   </>
