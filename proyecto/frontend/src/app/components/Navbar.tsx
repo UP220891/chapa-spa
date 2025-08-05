@@ -13,13 +13,22 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
 
   React.useEffect(() => {
     if (usuarioProp) {
+      console.log("🔄 Navbar recibió usuario via props:", usuarioProp);
+      console.log("🔍 Campos del usuario en Navbar:", Object.keys(usuarioProp));
+      console.log("👤 tipo_usuario:", usuarioProp.tipo_usuario);
+      console.log("👤 rol:", usuarioProp.rol);
       setUsuario(usuarioProp);
     } else {
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('usuario');
       if (token && userStr) {
         try {
-          setUsuario(JSON.parse(userStr));
+          const parsedUser = JSON.parse(userStr);
+          console.log("💾 Navbar cargó usuario desde localStorage:", parsedUser);
+          console.log("🔍 Campos del usuario desde localStorage:", Object.keys(parsedUser));
+          console.log("👤 tipo_usuario:", parsedUser.tipo_usuario);
+          console.log("👤 rol:", parsedUser.rol);
+          setUsuario(parsedUser);
         } catch {
           setUsuario(null);
         }
@@ -46,7 +55,16 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
           <li><a href="/citas" className="hover:text-pink-600">Agendar Cita</a></li>
           <li><a href="/ubicacion" className="hover:text-pink-600">Ubicación</a></li>
           {/* Enlace para cualquier empleado (admin o empleado) */}
-          {usuario && (usuario.tipo === 'admin' || usuario.tipo === 'empleado') && (
+          {(() => {
+            const shouldShowAdmin = usuario && (usuario.tipo_usuario === 'empleado' || usuario.rol === 'admin' || usuario.rol === 'empleado');
+            console.log("🔒 Evaluando acceso a Administrador:", {
+              usuario: !!usuario,
+              tipo_usuario: usuario?.tipo_usuario,
+              rol: usuario?.rol,
+              shouldShowAdmin
+            });
+            return shouldShowAdmin;
+          })() && (
             <li><a href="/Administrador" className="hover:text-pink-600">Administrador</a></li>
           )}
         </ul>
@@ -60,7 +78,7 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
         {usuario && (
           <div className="flex items-center gap-4 pl-6 border-l border-gray-200">
             <span className="text-sm text-gray-600 text-right min-w-[120px] leading-tight">
-              Bienvenido,<br />{usuario.nombre || usuario.email}
+              Bienvenido,<br />{usuario.nombre_empleado || usuario.nombre_cliente || usuario.nombre || usuario.email}
             </span>
             <button
               className="flex items-center justify-center bg-[#204d47] hover:bg-[#357a6c] rounded-full p-2 border-none transition-colors shadow-md"

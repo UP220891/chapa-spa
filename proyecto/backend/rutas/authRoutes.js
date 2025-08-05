@@ -22,25 +22,39 @@ router.put('/update-profile-empleado', verificarToken, [
   }
   next();
 }, async (req, res) => {
-  const { nombre, id_especialidad, id_horarios } = req.body;
+  const { nombre, telefono, email, fecha_nacimiento, id_especialidad, id_horarios } = req.body;
   const user = req.user;
   if (!user || !user.id_empleado) {
     return res.status(401).json({ mensaje: 'No autorizado' });
   }
   try {
     // Log para depuración
-    console.log('Datos recibidos para actualizar empleado:', { nombre, id_especialidad, id_horarios, id_empleado: user.id_empleado });
+    console.log('Datos recibidos para actualizar empleado:', { nombre, telefono, email, fecha_nacimiento, id_especialidad, id_horarios, id_empleado: user.id_empleado });
     const pool = await poolPromise;
+    
+    // Tomar el primer horario del array para actualizar el campo id_horario
+    const id_horario = id_horarios[0];
+    
+    // Actualizar tabla T_Empleados
     await pool.request()
       .input('id_empleado', sql.Int, user.id_empleado)
       .input('nombre_empleado', sql.VarChar(50), nombre)
+      .input('telefono', sql.VarChar(50), telefono)
+      .input('email', sql.NVarChar(50), email)
+      .input('fecha_registro', sql.Date, fecha_nacimiento)
       .input('id_especialidad', sql.Int, id_especialidad)
-      .query('UPDATE T_Empleados SET nombre_empleado = @nombre_empleado, id_especialidad = @id_especialidad WHERE id_empleado = @id_empleado');
-    // Asignar horarios (muchos a muchos)
-    await setHorariosEmpleado(user.id_empleado, id_horarios);
-    // Obtener los ids de horarios asignados
-    const horariosAsignados = await getHorariosEmpleado(user.id_empleado);
-    res.json({ mensaje: 'Perfil de empleado actualizado correctamente', id_horarios: horariosAsignados });
+      .input('id_horario', sql.Int, id_horario)
+      .query('UPDATE T_Empleados SET nombre_empleado = @nombre_empleado, telefono = @telefono, email = @email, fecha_registro = @fecha_registro, id_especialidad = @id_especialidad, id_horario = @id_horario WHERE id_empleado = @id_empleado');
+    
+    // También actualizar el email en la tabla T_Auth
+    if (email) {
+      await pool.request()
+        .input('id_empleado', sql.Int, user.id_empleado)
+        .input('email', sql.NVarChar(50), email)
+        .query('UPDATE T_Auth SET email = @email WHERE id_empleado = @id_empleado');
+    }
+    
+    res.json({ mensaje: 'Perfil de empleado actualizado correctamente', id_horarios: [id_horario] });
   } catch (error) {
     console.error('Error al actualizar perfil de empleado:', error);
     res.status(500).json({ mensaje: 'Error al actualizar perfil de empleado', error: error.message });
@@ -197,14 +211,10 @@ router.get('/perfil', verificarToken, async (req, res) => {
 
 // Endpoint protegido para registrar empleados (solo admin)
 router.post('/register-empleado', verificarToken, async (req, res) => {
-  console.log('🔥 Endpoint register-empleado llamado');
-  console.log('User:', req.user);
-  console.log('Body:', req.body);
-  
   if (!req.user || req.user.tipo_usuario !== 'empleado' || (req.user.rol !== 'admin' && req.user.rol !== 'empleado')) {
     return res.status(403).json({ mensaje: 'Solo empleados o admin pueden crear empleados o clientes' });
   }
-  const { nombre, email, password, telefono, fechaNacimiento, rol, tipo_usuario, id_especialidad } = req.body;
+  const { nombre, email, password, telefono, fechaNacimiento, rol, tipo_usuario } = req.body;
   if (!nombre || !email || !password || !telefono || !fechaNacimiento) {
     return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
   }
@@ -221,9 +231,15 @@ router.post('/register-empleado', verificarToken, async (req, res) => {
     let id_empleado = null;
     let id_cliente = null;
     if (tipoFinal === 'empleado') {
-      // Para empleados, solo crear registro en T_Auth (sin T_Empleados por estructura limitada)
-      console.log('📝 Creando empleado solo en T_Auth con datos:', { nombre, email, rolFinal });
-      id_empleado = null; // Se maneja solo desde T_Auth
+      const empleadoResult = await pool.request()
+        .input('nombre_empleado', sql.VarChar(50), nombre)
+        .input('apellido_empleado', sql.VarChar(50), '')
+        .input('telefono', sql.VarChar(50), telefono)
+        .input('correo_electronico', sql.NVarChar(50), email)
+        .input('fecha_registro', sql.Date, fechaNacimiento)
+        .input('rol', sql.NVarChar(20), rolFinal)
+        .query('INSERT INTO T_Empleados (nombre_empleado, apellido_empleado, telefono, correo_electronico, fecha_registro, rol) OUTPUT INSERTED.id_empleado VALUES (@nombre_empleado, @apellido_empleado, @telefono, @correo_electronico, @fecha_registro, @rol)');
+      id_empleado = empleadoResult.recordset[0].id_empleado;
     } else {
       const clienteResult = await pool.request()
         .input('nombre_cliente', sql.VarChar(50), nombre)
@@ -244,9 +260,104 @@ router.post('/register-empleado', verificarToken, async (req, res) => {
       .query('INSERT INTO T_Auth (email, password, tipo_usuario, id_cliente, id_empleado) VALUES (@email, @password, @tipo_usuario, @id_cliente, @id_empleado)');
     res.status(201).json({ mensaje: tipoFinal === 'empleado' ? 'Empleado registrado correctamente' : 'Cliente registrado correctamente' });
   } catch (error) {
-    console.error('❌ Error en register-empleado:', error);
-    console.error('Stack trace:', error.stack);
     res.status(500).json({ mensaje: 'Error al registrar', error: error.message });
+  }
+});
+
+// Obtener perfil del usuario autenticado desde las tablas correspondientes
+router.get('/profile', verificarToken, async (req, res) => {
+  const user = req.user;
+  try {
+    const pool = await poolPromise;
+    
+    if (user.id_empleado) {
+      // Si es empleado, obtener datos de la tabla T_Empleados con especialidad y horarios
+      const empleadoResult = await pool.request()
+        .input('id_empleado', sql.Int, user.id_empleado)
+        .query(`
+          SELECT 
+            e.id_empleado,
+            e.nombre_empleado,
+            e.telefono,
+            e.email,
+            e.fecha_registro,
+            e.id_especialidad,
+            e.id_horario,
+            e.rol,
+            esp.nombre_especialidad,
+            a.email as auth_email,
+            a.tipo_usuario
+          FROM T_Empleados e
+          LEFT JOIN C_Especialidad esp ON e.id_especialidad = esp.id_especialidad
+          LEFT JOIN T_Auth a ON e.id_empleado = a.id_empleado
+          WHERE e.id_empleado = @id_empleado
+        `);
+
+      if (empleadoResult.recordset.length === 0) {
+        return res.status(404).json({ mensaje: 'Empleado no encontrado' });
+      }
+
+      const empleado = empleadoResult.recordset[0];
+
+      // Obtener información del horario asignado al empleado
+      let horarios = [];
+      let id_horarios = [];
+      
+      if (empleado.id_horario) {
+        const horarioResult = await pool.request()
+          .input('id_horario', sql.Int, empleado.id_horario)
+          .query(`
+            SELECT id_horario, dia, hora_inicio, hora_fin
+            FROM T_Horarios 
+            WHERE id_horario = @id_horario
+          `);
+        
+        if (horarioResult.recordset.length > 0) {
+          horarios = horarioResult.recordset;
+          id_horarios = [empleado.id_horario];
+        }
+      }
+
+      res.json({
+        ...empleado,
+        fecha_nacimiento: empleado.fecha_registro,
+        id_horarios,
+        horarios,
+        especialidad: empleado.nombre_especialidad
+      });
+
+    } else if (user.id_cliente) {
+      // Si es cliente, obtener datos de la tabla T_Clientes
+      const clienteResult = await pool.request()
+        .input('id_cliente', sql.Int, user.id_cliente)
+        .query(`
+          SELECT 
+            c.id_cliente,
+            c.nombre_cliente,
+            c.telefono,
+            c.correo_electronico,
+            c.fecha_registro as fecha_nacimiento,
+            a.email,
+            a.tipo_usuario
+          FROM T_Clientes c
+          LEFT JOIN T_Auth a ON c.id_cliente = a.id_cliente
+          WHERE c.id_cliente = @id_cliente
+        `);
+
+      if (clienteResult.recordset.length === 0) {
+        return res.status(404).json({ mensaje: 'Cliente no encontrado' });
+      }
+
+      const cliente = clienteResult.recordset[0];
+      res.json(cliente);
+
+    } else {
+      return res.status(400).json({ mensaje: 'Usuario no válido' });
+    }
+
+  } catch (error) {
+    console.error('Error al obtener perfil:', error);
+    res.status(500).json({ mensaje: 'Error al obtener perfil', error: error.message });
   }
 });
 
