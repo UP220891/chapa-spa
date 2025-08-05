@@ -93,10 +93,30 @@ async function actualizarEmpleado(req, res) {
 // Eliminar un empleado
 async function eliminarEmpleado(req, res) {
   try {
-    await Empleados.deleteEmpleado(req.params.id);
+    console.log(`🗑️ Intentando eliminar empleado con ID: ${req.params.id}`);
+    
+    const result = await Empleados.deleteEmpleado(req.params.id);
+    
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Empleado no encontrado' });
+    }
+    
+    console.log('✅ Empleado eliminado correctamente');
     res.json({ mensaje: 'Empleado eliminado correctamente' });
   } catch (error) {
-    res.status(500).json({ error: 'Error al eliminar empleado' });
+    console.error('❌ Error al eliminar empleado:', error);
+    
+    // Verificar si es un error de restricción de clave foránea
+    if (error.message && error.message.includes('REFERENCE constraint')) {
+      return res.status(400).json({ 
+        error: 'No se puede eliminar el empleado porque tiene citas asignadas o está relacionado con otros registros' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Error al eliminar empleado', 
+      detalle: error.message 
+    });
   }
 }
 

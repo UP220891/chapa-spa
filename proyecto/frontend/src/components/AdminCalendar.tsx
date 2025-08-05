@@ -7,6 +7,7 @@ import { crearCita, editarCita, getCitas } from '../servicios/citasService';
 import { createCliente, getClientes } from '../servicios/clientesService';
 import { getServicios } from '../servicios/serviciosService';
 import '../styles/notification.css';
+import '../styles/manager.css';
 import { ProtectedRoute } from './ProtectedRoute';
 
 interface ClienteFormProps {
@@ -16,6 +17,7 @@ interface ClienteFormProps {
 
 interface EmpleadoFormProps {
   onClose: () => void;
+  onEmpleadoCreado?: () => void;
 }
 
 // Tipos locales para evitar errores de compilación
@@ -49,7 +51,7 @@ interface Cita {
   id_horario?: number;
 }
 // Formulario para crear empleado
-const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose }) => {
+const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose, onEmpleadoCreado }) => {
   const [form, setForm] = useState({
     nombre_empleado: '',
     email: '',
@@ -169,6 +171,10 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({ onClose }) => {
         setShowNotification(false);
         setTimeout(() => {
           setNotification(null);
+          // Recargar la lista de empleados si se proporciona la función
+          if (onEmpleadoCreado) {
+            onEmpleadoCreado();
+          }
           onClose();
         }, 400);
       }, 3000);
@@ -898,9 +904,11 @@ const AdminCalendar = () => {
 const AdminCalendarContent = () => {
   const [showClientForm, setShowClientForm] = useState(false);
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
+  const [showEmployeesManager, setShowEmployeesManager] = useState(false);
+  const [showClientsManager, setShowClientsManager] = useState(false);
   const handleNewAppointment = () => setShowAppointmentForm(true);
-  const handleNewClient = () => setShowClientForm(true);
-  const handleNewEmployee = () => setShowEmployeeForm(true);
+  const handleEmployeesManager = () => setShowEmployeesManager(true);
+  const handleClientsManager = () => setShowClientsManager(true);
   // Utilidades para el calendario
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -969,6 +977,9 @@ const AdminCalendarContent = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editAppointment, setEditAppointment] = useState<Cita | null>(null);
   const [citas, setCitas] = useState<Cita[]>([]);
+  const [empleados, setEmpleados] = useState<any[]>([]);
+  const [loadingEmpleados, setLoadingEmpleados] = useState(false);
+  const [loadingClientes, setLoadingClientes] = useState(false);
 
   const [newAppointment, setNewAppointment] = useState<any>({
     cliente: '',
@@ -990,6 +1001,20 @@ const AdminCalendarContent = () => {
       setClientes(clientesData);
     } catch (error) {
       console.error('Error al recargar clientes:', error);
+    }
+  };
+
+  // Función para recargar empleados
+  const recargarEmpleados = async () => {
+    setLoadingEmpleados(true);
+    try {
+      const { getEmpleados } = await import('../servicios/empleadosService');
+      const empleadosData = await getEmpleados();
+      setEmpleados(empleadosData);
+    } catch (error) {
+      console.error('Error al recargar empleados:', error);
+    } finally {
+      setLoadingEmpleados(false);
     }
   };
 
@@ -1245,6 +1270,21 @@ const AdminCalendarContent = () => {
     cargarCitasIniciales();
   }, []);
 
+  // Cargar empleados cuando se abre el gestor
+  useEffect(() => {
+    if (showEmployeesManager) {
+      recargarEmpleados();
+    }
+  }, [showEmployeesManager]);
+
+  // Cargar clientes cuando se abre el gestor
+  useEffect(() => {
+    if (showClientsManager) {
+      setLoadingClientes(true);
+      recargarClientes().finally(() => setLoadingClientes(false));
+    }
+  }, [showClientsManager]);
+
   // Al hacer click en un día, mostrar el modal con las citas de ese día
   const handleDayClick = async (date: Date) => {
     if (!date) return;
@@ -1260,6 +1300,177 @@ const AdminCalendarContent = () => {
     setShowDayCitasModal(true);
   };
 
+  // Componente para gestionar empleados
+  const EmpleadosManager = () => {
+    const handleEliminarEmpleado = async (id: number) => {
+      if (window.confirm('¿Estás seguro de que quieres eliminar este empleado?')) {
+        try {
+          const { eliminarEmpleado } = await import('../servicios/empleadosService');
+          await eliminarEmpleado(id);
+          alert('Empleado eliminado correctamente');
+          recargarEmpleados();
+        } catch (error: any) {
+          console.error('Error al eliminar empleado:', error);
+          // Mostrar el mensaje de error específico del backend
+          const mensaje = error.message || 'Error al eliminar empleado';
+          alert(mensaje);
+        }
+      }
+    };
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowEmployeesManager(false)}>
+        <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '0', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+          <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#204d47', borderRadius: '16px 16px 0 0', padding: '24px 32px' }}>
+            <h3 style={{ color: '#ffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
+              👥 Gestión de Empleados
+            </h3>
+            <button className="close-btn" onClick={() => setShowEmployeesManager(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}>×</button>
+          </div>
+          
+          <div style={{ padding: '0 32px 32px 32px' }}>
+            <div style={{ marginBottom: '20px' }}>
+            <button 
+              style={{ background: '#357a6c', color: 'white', borderRadius: '8px', padding: '10px 20px', border: 'none', fontWeight: 700, fontSize: '1rem' }} 
+              onClick={() => { setShowEmployeeForm(true); setShowEmployeesManager(false); }}
+            >
+              + Agregar Nuevo Empleado
+            </button>
+          </div>
+
+          {loadingEmpleados ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              Cargando empleados...
+            </div>
+          ) : empleados.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              No hay empleados registrados
+            </div>
+          ) : (
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#495057', fontWeight: 600 }}>Nombre</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#495057', fontWeight: 600 }}>Email</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#495057', fontWeight: 600 }}>Teléfono</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#495057', fontWeight: 600 }}>Especialidad</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: '#495057', fontWeight: 600 }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {empleados.map((empleado) => (
+                    <tr key={empleado.id_empleado} style={{ borderBottom: '1px solid #dee2e6' }}>
+                      <td style={{ padding: '12px', color: '#495057' }}>{empleado.nombre_empleado}</td>
+                      <td style={{ padding: '12px', color: '#495057' }}>{empleado.email}</td>
+                      <td style={{ padding: '12px', color: '#495057' }}>{empleado.telefono || 'N/A'}</td>
+                      <td style={{ padding: '12px', color: '#495057' }}>
+                        {empleado.especialidad?.nombre_especialidad || 'Sin especialidad'}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <button 
+                          onClick={() => handleEliminarEmpleado(empleado.id_empleado)}
+                          style={{ background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 12px', fontSize: '0.875rem', cursor: 'pointer' }}
+                          title="Eliminar empleado"
+                        >
+                          🗑️ Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Componente para gestionar clientes
+  const ClientesManager = () => {
+    const handleEliminarCliente = async (id: number) => {
+      if (window.confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+        try {
+          const { deleteCliente } = await import('../servicios/clientesService');
+          await deleteCliente(id);
+          recargarClientes();
+        } catch (error: any) {
+          console.error('Error al eliminar cliente:', error);
+          alert(error.message || 'Error al eliminar cliente');
+        }
+      }
+    };
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowClientsManager(false)}>
+        <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '0', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+          <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#204d47', borderRadius: '16px 16px 0 0', padding: '24px 32px' }}>
+            <h3 style={{ color: '#ffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
+              📋 Gestión de Clientes
+            </h3>
+            <button className="close-btn" onClick={() => setShowClientsManager(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}>×</button>
+          </div>
+          
+          <div style={{ padding: '0 32px 32px 32px' }}>
+            <div style={{ marginBottom: '20px' }}>
+            <button 
+              style={{ background: '#204d47', color: 'white', borderRadius: '8px', padding: '10px 20px', border: 'none', fontWeight: 700, fontSize: '1rem' }} 
+              onClick={() => { setShowClientForm(true); setShowClientsManager(false); }}
+            >
+              + Agregar Nuevo Cliente
+            </button>
+          </div>
+
+          {loadingClientes ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              Cargando clientes...
+            </div>
+          ) : clientes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              No hay clientes registrados
+            </div>
+          ) : (
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#495057', fontWeight: 600 }}>Nombre</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#495057', fontWeight: 600 }}>Apellido</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#495057', fontWeight: 600 }}>Teléfono</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#495057', fontWeight: 600 }}>Email</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: '#495057', fontWeight: 600 }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clientes.map((cliente) => (
+                    <tr key={cliente.id_cliente} style={{ borderBottom: '1px solid #dee2e6' }}>
+                      <td style={{ padding: '12px', color: '#495057' }}>{cliente.nombre_cliente}</td>
+                      <td style={{ padding: '12px', color: '#495057' }}>{cliente.apellido_cliente}</td>
+                      <td style={{ padding: '12px', color: '#495057' }}>{cliente.telefono || 'N/A'}</td>
+                      <td style={{ padding: '12px', color: '#495057' }}>{cliente.correo_electronico || 'N/A'}</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <button 
+                          onClick={() => handleEliminarCliente(cliente.id_cliente)}
+                          style={{ background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 12px', fontSize: '0.875rem', cursor: 'pointer' }}
+                          title="Eliminar cliente"
+                        >
+                          🗑️ Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <Navbar />
@@ -1269,11 +1480,11 @@ const AdminCalendarContent = () => {
             <button className="btn-new-appointment" style={{ background: '#4f46e5', color: 'white', borderRadius: '8px', padding: '0.8rem 2rem', border: 'none', fontWeight: 700, fontSize: '1.1rem', marginRight: '12px' }} onClick={handleNewAppointment}>
               + Nueva Cita
             </button>
-            <button className="btn-new-employee" style={{ background: '#357a6c', color: 'white', borderRadius: '8px', padding: '0.8rem 2rem', border: 'none', fontWeight: 700, fontSize: '1.1rem', marginRight: '12px' }} onClick={handleNewEmployee}>
-              + Nuevo Empleado
+            <button className="btn-manage-employees" style={{ background: '#0891b2', color: 'white', borderRadius: '8px', padding: '0.8rem 2rem', border: 'none', fontWeight: 700, fontSize: '1.1rem', marginRight: '12px' }} onClick={handleEmployeesManager}>
+              👥 Gestionar Empleados
             </button>
-            <button className="btn-new-client" style={{ background: '#204d47', color: 'white', borderRadius: '8px', padding: '0.8rem 2rem', border: 'none', fontWeight: 700, fontSize: '1.1rem' }} onClick={handleNewClient}>
-              + Nuevo Cliente
+            <button className="btn-manage-clients" style={{ background: '#7c3aed', color: 'white', borderRadius: '8px', padding: '0.8rem 2rem', border: 'none', fontWeight: 700, fontSize: '1.1rem' }} onClick={handleClientsManager}>
+              📋 Gestionar Clientes
             </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -1489,7 +1700,7 @@ const AdminCalendarContent = () => {
               <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.3rem', margin: 0 }}>Nuevo Empleado</h3>
               <button className="close-btn" onClick={() => setShowEmployeeForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
             </div>
-            <EmpleadoForm onClose={() => setShowEmployeeForm(false)} />
+            <EmpleadoForm onClose={() => setShowEmployeeForm(false)} onEmpleadoCreado={recargarEmpleados} />
           </div>
         </div>
       )}
@@ -1606,20 +1817,11 @@ const AdminCalendarContent = () => {
         </div>
       )}
 
-      {/* Modal para nuevo empleado */}
-      {showEmployeeForm && (
-        <div className="modal-overlay" onClick={() => setShowEmployeeForm(false)}>
-          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
-                Nuevo Empleado
-              </h3>
-              <button className="close-btn" onClick={() => setShowEmployeeForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
-            </div>
-            <EmpleadoForm onClose={() => setShowEmployeeForm(false)} />
-          </div>
-        </div>
-      )}
+      {/* Modal para gestionar empleados */}
+      {showEmployeesManager && <EmpleadosManager />}
+
+      {/* Modal para gestionar clientes */}
+      {showClientsManager && <ClientesManager />}
     </>
   );
 };

@@ -260,7 +260,16 @@ export const eliminarEmpleado = async (id: number) => {
       throw new Error('Empleado no encontrado.');
     }
     
+    if (error.response?.status === 400) {
+      throw new Error(error.response.data?.error || 'Error en la solicitud.');
+    }
+    
     if (error.response) {
+      // Intentar obtener el mensaje específico del backend
+      const mensajeBackend = error.response.data?.error || error.response.data?.detalle;
+      if (mensajeBackend) {
+        throw new Error(mensajeBackend);
+      }
       throw new Error(`Error del servidor: ${error.response.status}`);
     }
     

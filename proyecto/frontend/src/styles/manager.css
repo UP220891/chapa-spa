@@ -1,0 +1,162 @@
+/* Estilos para el gestor de empleados y clientes */
+
+.manager-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.manager-content {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 800px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(31, 38, 135, 0.13);
+}
+
+.manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 16px;
+}
+
+.manager-title {
+  color: #204d47;
+  font-weight: 800;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.manager-close-btn {
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  color: #204d47;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.manager-close-btn:hover {
+  color: #357a6c;
+}
+
+.manager-add-btn {
+  background: #357a6c;
+  color: white;
+  border-radius: 8px;
+  padding: 10px 20px;
+  border: none;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 20px;
+}
+
+.manager-add-btn:hover {
+  background: #204d47;
+}
+
+.manager-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.manager-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.manager-table th {
+  background: #f8f9fa;
+  padding: 12px;
+  text-align: left;
+  color: #495057;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.manager-table td {
+  padding: 12px;
+  color: #495057;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.manager-table tr:hover {
+  background: #f8f9fa;
+}
+
+.manager-delete-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.manager-delete-btn:hover {
+  background: #c82333;
+}
+
+.manager-loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.manager-empty {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .manager-content {
+    padding: 20px;
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .manager-title {
+    font-size: 1.3rem;
+  }
+
+  .manager-table {
+    font-size: 0.8rem;
+  }
+
+  .manager-table th,
+  .manager-table td {
+    padding: 8px;
+  }
+
+  .manager-add-btn {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+}

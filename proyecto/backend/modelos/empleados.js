@@ -8,8 +8,11 @@ async function getEmpleados() {
       SELECT 
         e.id_empleado,
         e.nombre_empleado,
+        e.email,
+        e.telefono,
         e.id_especialidad,
         e.rol,
+        e.fecha_registro,
         esp.nombre_especialidad
       FROM T_Empleados e
       LEFT JOIN C_Especialidad esp ON e.id_especialidad = esp.id_especialidad
@@ -41,8 +44,11 @@ async function getEmpleadoById(id_empleado) {
         SELECT 
           e.id_empleado,
           e.nombre_empleado,
+          e.email,
+          e.telefono,
           e.id_especialidad,
           e.rol,
+          e.fecha_registro,
           esp.nombre_especialidad
         FROM T_Empleados e
         LEFT JOIN C_Especialidad esp ON e.id_especialidad = esp.id_especialidad
@@ -122,11 +128,33 @@ async function updateEmpleado(id_empleado, data) {
 async function deleteEmpleado(id_empleado) {
   try {
     const pool = await poolPromise;
+    
+    // Primero verificar si el empleado existe
+    const checkEmpleado = await pool.request()
+      .input('id_empleado', sql.Int, id_empleado)
+      .query('SELECT id_empleado FROM T_Empleados WHERE id_empleado = @id_empleado');
+    
+    if (checkEmpleado.recordset.length === 0) {
+      throw new Error('Empleado no encontrado');
+    }
+    
+    // Verificar si tiene citas asignadas
+    const citasAsignadas = await pool.request()
+      .input('id_empleado', sql.Int, id_empleado)
+      .query('SELECT COUNT(*) as count FROM T_Citas WHERE id_empleado = @id_empleado');
+    
+    if (citasAsignadas.recordset[0].count > 0) {
+      throw new Error('No se puede eliminar el empleado porque tiene citas asignadas');
+    }
+    
+    // Si no hay restricciones, proceder con la eliminación
     const result = await pool.request()
       .input('id_empleado', sql.Int, id_empleado)
       .query('DELETE FROM T_Empleados WHERE id_empleado = @id_empleado');
+      
     return result;
   } catch (err) {
+    console.error('Error en deleteEmpleado:', err);
     throw err;
   }
 }

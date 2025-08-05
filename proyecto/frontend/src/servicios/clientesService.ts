@@ -116,3 +116,50 @@ export async function createCliente(data: Omit<Cliente, 'id_cliente' | 'fecha_re
     throw new Error(`Error de conexión: ${error.message}`);
   }
 }
+
+export async function deleteCliente(id: number): Promise<void> {
+  try {
+    console.log('🗑️ Eliminando cliente con ID:', id);
+    
+    // Verificar si el usuario está autenticado
+    if (!isAuthenticated()) {
+      throw new Error('No estás autenticado. Inicia sesión primero.');
+    }
+    
+    // Obtener token del localStorage
+    const token = getToken();
+    if (!token) {
+      throw new Error('No hay token de autenticación. Inicia sesión primero.');
+    }
+    
+    const res = await axios.delete(`${API_URL}/api/clientes/${id}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      timeout: 10000,
+    });
+    
+    console.log('✅ Cliente eliminado exitosamente');
+  } catch (error: any) {
+    console.error('❌ Error al eliminar cliente:', error);
+    
+    if (error.response?.status === 401) {
+      throw new Error('Token de autenticación inválido. Inicia sesión nuevamente.');
+    }
+    
+    if (error.response?.status === 403) {
+      throw new Error('No tienes permisos para eliminar clientes.');
+    }
+    
+    if (error.response?.status === 404) {
+      throw new Error('Cliente no encontrado.');
+    }
+    
+    if (error.response) {
+      throw new Error(`Error del servidor: ${error.response.status}`);
+    }
+    
+    throw new Error(`Error de conexión: ${error.message}`);
+  }
+}
