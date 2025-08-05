@@ -7,6 +7,8 @@ import { CitaForm, crearCita } from "@/servicios/citasService";
 
 const CitasForm: React.FC = () => {
   const [servicios, setServicios] = React.useState<any[]>([]);
+  const [clientes, setClientes] = React.useState<any[]>([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = React.useState<any>(null);
   const [nombreServicio, setNombreServicio] = React.useState<string>("");
   const [servicioInicial, setServicioInicial] = React.useState<string>("");
   // Solo una vez:
@@ -42,6 +44,34 @@ const CitasForm: React.FC = () => {
     }
     cargarServicios();
   }, [servicioParam]);
+
+  // Cargar clientes disponibles
+  React.useEffect(() => {
+    async function cargarClientes() {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL;
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const res = await fetch(`${API_URL}/api/clientes`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setClientes(data);
+          console.log('Clientes cargados:', data);
+        }
+      } catch (error) {
+        console.error('Error cargando clientes:', error);
+      }
+    }
+    cargarClientes();
+  }, []);
+
   // (Eliminado: segunda declaración de searchParams y servicioParam)
   const [usuario, setUsuario] = React.useState<any>(null);
   const [bloqueado, setBloqueado] = React.useState(true);
@@ -77,7 +107,12 @@ const CitasForm: React.FC = () => {
         try {
           const user = JSON.parse(usuarioLocal);
           setUsuario(user);
-          setBloqueado(false);
+          // Permitir si es cliente o empleado (admin o empleado)
+          if (user.id_cliente || user.tipo_usuario === 'empleado' || user.rol === 'admin' || user.rol === 'empleado') {
+            setBloqueado(false);
+          } else {
+            setBloqueado(true);
+          }
         } catch {
           setUsuario(null);
           setBloqueado(true);
@@ -303,9 +338,15 @@ const CitasForm: React.FC = () => {
       const id_servicio = Number(servicioSeleccionado?.id_servicio || servicioSeleccionado?.id);
       if (!id_servicio) throw new Error("No se encontró el servicio seleccionado");
 
-      // Obtener id_cliente del usuario
-      const id_cliente = usuario?.id_cliente;
-      if (!id_cliente) throw new Error("No se encontró el id_cliente del usuario");
+      // Obtener id_cliente del cliente seleccionado o del usuario actual
+      let id_cliente;
+      if (clienteSeleccionado) {
+        id_cliente = clienteSeleccionado.id_cliente;
+      } else if (usuario?.id_cliente) {
+        id_cliente = usuario.id_cliente;
+      } else {
+        throw new Error("Debes seleccionar un cliente o iniciar sesión como cliente");
+      }
 
       // Asignar id_empleado por defecto (puedes cambiar la lógica si tienes selección de empleado)
       const id_empleado = 1; // Por defecto, o puedes obtenerlo de la base de datos o del usuario
@@ -416,10 +457,61 @@ const CitasForm: React.FC = () => {
           )}
           {bloqueado && (
             <div style={{ color: 'red', fontWeight: 600, textAlign: 'center', marginBottom: '0.8rem', fontSize:'0.9rem' }}>
-              Debes iniciar sesión para reservar una cita.
+              Debes iniciar sesión como cliente o empleado para reservar una cita.
             </div>
           )}
           <form className="register-form" onSubmit={handleSubmit}>
+            {/* Selector de cliente */}
+            {clientes.length > 0 && (
+              <div className="register-row" style={{ marginBottom: '1rem' }}>
+                <div className="register-col" style={{ flex: 2 }}>
+                  <label htmlFor="cliente" className="register-label">Seleccionar Cliente</label>
+                  <select
+                    id="cliente"
+                    className="register-input"
+                    style={{ color: '#204d47' }}
+                    value={clienteSeleccionado?.id_cliente || ""}
+                    onChange={(e) => {
+                      if (e.target.value === "") {
+                        // Si selecciona "Seleccionar cliente...", limpiar formulario
+                        setClienteSeleccionado(null);
+                        setForm(prev => ({
+                          ...prev,
+                          nombre: "",
+                          email: "",
+                          numero: ""
+                        }));
+                      } else {
+                        const cliente = clientes.find(c => c.id_cliente === Number(e.target.value));
+                        setClienteSeleccionado(cliente);
+                        if (cliente) {
+                          setForm(prev => ({
+                            ...prev,
+                            nombre: cliente.nombre_cliente || "",
+                            email: cliente.correo_electronico || "",
+                            numero: cliente.telefono || ""
+                          }));
+                        }
+                      }
+                    }}
+                  >
+                    <option value="">Seleccionar cliente...</option>
+                    {clientes.map((cliente: any) => (
+                      <option key={cliente.id_cliente} value={cliente.id_cliente}>
+                        {cliente.nombre_cliente} - {cliente.correo_electronico}
+                      </option>
+                    ))}
+                  </select>
+                  {clienteSeleccionado && (
+                    <div style={{ color: '#357a6c', fontWeight: 500, marginTop: 6, fontSize: '0.85rem' }}>
+                      Cliente seleccionado: <b>{clienteSeleccionado.nombre_cliente}</b>
+                    </div>
+                  )}
+                </div>
+                <div className="register-col"></div>
+              </div>
+            )}
+            
             {/* Primera fila: Nombres, Apellidos, Email */}
             <div className="register-row">
               <div className="register-col">
@@ -433,11 +525,12 @@ const CitasForm: React.FC = () => {
                   style={{ 
                     color: '#204d47',
                     borderColor: fieldErrors.nombre ? '#e53e3e' : undefined,
-                    backgroundColor: fieldErrors.nombre ? '#fed7d7' : undefined
+                    backgroundColor: fieldErrors.nombre ? '#fed7d7' : (clienteSeleccionado ? '#e0f1ee' : undefined)
                   }} 
                   value={form.nombre} 
                   onChange={handleChange}
                   onBlur={e => validateField('nombre', e.target.value)}
+                  readOnly={!!clienteSeleccionado}
                 />
                 {fieldErrors.nombre && (
                   <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
@@ -457,11 +550,12 @@ const CitasForm: React.FC = () => {
                   style={{ 
                     color: '#204d47',
                     borderColor: fieldErrors.email ? '#e53e3e' : undefined,
-                    backgroundColor: fieldErrors.email ? '#fed7d7' : undefined
+                    backgroundColor: fieldErrors.email ? '#fed7d7' : (clienteSeleccionado ? '#e0f1ee' : undefined)
                   }} 
                   value={form.email} 
                   onChange={handleChange}
                   onBlur={e => validateField('email', e.target.value)}
+                  readOnly={!!clienteSeleccionado}
                 />
                 {fieldErrors.email && (
                   <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
@@ -483,11 +577,12 @@ const CitasForm: React.FC = () => {
                   style={{ 
                     color: '#204d47',
                     borderColor: fieldErrors.numero ? '#e53e3e' : undefined,
-                    backgroundColor: fieldErrors.numero ? '#fed7d7' : undefined
+                    backgroundColor: fieldErrors.numero ? '#fed7d7' : (clienteSeleccionado ? '#e0f1ee' : undefined)
                   }} 
                   value={form.numero} 
                   onChange={handleChange}
                   onBlur={e => validateField('numero', e.target.value)}
+                  readOnly={!!clienteSeleccionado}
                 />
                 {fieldErrors.numero && (
                   <span style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '2px', display: 'block' }}>
