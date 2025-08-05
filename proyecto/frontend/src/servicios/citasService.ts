@@ -131,6 +131,12 @@ export async function editarCita(
     headers,
     body: JSON.stringify(data)
   });
-  if (!res.ok) throw new Error("Error al editar cita");
+  
+  if (!res.ok) {
+    const errorData = await res.text();
+    console.error('Error en editarCita:', res.status, errorData);
+    throw new Error(`Error al editar cita: ${res.status} - ${errorData}`);
+  }
+  
   return await res.json();
 }

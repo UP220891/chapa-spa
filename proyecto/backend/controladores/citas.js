@@ -46,10 +46,13 @@ async function actualizarCita(req, res) {
     return res.status(400).json({ errores: errors.array() });
   }
   try {
+    console.log('Actualizando cita ID:', req.params.id);
+    console.log('Datos recibidos:', req.body);
     await Citas.updateCita(req.params.id, req.body);
     res.json({ mensaje: 'Cita actualizada correctamente' });
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar cita' });
+    console.error('Error en actualizarCita:', error);
+    res.status(500).json({ error: 'Error al actualizar cita', detalle: error.message });
   }
 }
 

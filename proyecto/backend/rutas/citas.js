@@ -30,8 +30,11 @@ router.put('/:id', [
   body('id_cliente').optional().isInt().withMessage('El id_cliente debe ser un número entero'),
   body('id_empleado').optional().isInt().withMessage('El id_empleado debe ser un número entero'),
   body('id_servicio').optional().isInt().withMessage('El id_servicio debe ser un número entero'),
+  body('id_estado_cita').optional().isInt().withMessage('El id_estado_cita debe ser un número entero'),
   body('fecha').optional().isISO8601().withMessage('La fecha debe ser válida'),
-  body('hora').optional().notEmpty().withMessage('La hora es obligatoria'),
+  body('hora').optional().notEmpty().withMessage('La hora es obligatoria si se proporciona'),
+  body('costo_total').optional().isNumeric().withMessage('El costo_total debe ser un número'),
+  body('id_horario').optional().isInt().withMessage('El id_horario debe ser un número entero'),
 ], citasController.actualizarCita);
 
 // Eliminar una cita

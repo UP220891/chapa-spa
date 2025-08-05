@@ -66,22 +66,65 @@ async function createCita(data) {
 // Actualizar una cita
 async function updateCita(id_cita, data) {
   try {
+    console.log('updateCita - ID:', id_cita, 'Data:', data);
     const pool = await poolPromise;
-    // Combinar fecha y hora en formato DATETIME
-    const fechaHora = data.fecha && data.hora ? `${data.fecha}T${data.hora}:00` : null;
-    let result = await pool.request()
-      .input('id_cita', sql.Int, id_cita)
-      .input('id_cliente', sql.Int, data.id_cliente)
-      .input('id_servicio', sql.Int, data.id_servicio)
-      .input('id_empleado', sql.Int, data.id_empleado)
-      .input('fecha_cita', sql.DateTime, fechaHora)
-      .input('notas', sql.Text, data.notas || null)
-      .input('costo_total', sql.Decimal(8,2), data.costo_total)
-      .input('id_estado_cita', sql.Int, data.id_estado_cita || null)
-      .input('id_horario', sql.Int, data.id_horario || null)
-      .query('UPDATE T_Citas SET id_cliente = @id_cliente, id_servicio = @id_servicio, id_empleado = @id_empleado, fecha_cita = @fecha_cita, notas = @notas, costo_total = @costo_total, id_estado_cita = @id_estado_cita, id_horario = @id_horario WHERE id_cita = @id_cita');
+    
+    // Construir la consulta dinámicamente solo con los campos que se envían
+    let setClauses = [];
+    let request = pool.request().input('id_cita', sql.Int, id_cita);
+    
+    if (data.id_cliente !== undefined) {
+      setClauses.push('id_cliente = @id_cliente');
+      request.input('id_cliente', sql.Int, data.id_cliente);
+    }
+    
+    if (data.id_servicio !== undefined) {
+      setClauses.push('id_servicio = @id_servicio');
+      request.input('id_servicio', sql.Int, data.id_servicio);
+    }
+    
+    if (data.id_empleado !== undefined) {
+      setClauses.push('id_empleado = @id_empleado');
+      request.input('id_empleado', sql.Int, data.id_empleado);
+    }
+    
+    if (data.fecha && data.hora) {
+      const fechaHora = `${data.fecha}T${data.hora}:00`;
+      setClauses.push('fecha_cita = @fecha_cita');
+      request.input('fecha_cita', sql.DateTime, fechaHora);
+    }
+    
+    if (data.notas !== undefined) {
+      setClauses.push('notas = @notas');
+      request.input('notas', sql.Text, data.notas || null);
+    }
+    
+    if (data.costo_total !== undefined) {
+      setClauses.push('costo_total = @costo_total');
+      request.input('costo_total', sql.Decimal(8,2), data.costo_total);
+    }
+    
+    if (data.id_estado_cita !== undefined) {
+      setClauses.push('id_estado_cita = @id_estado_cita');
+      request.input('id_estado_cita', sql.Int, data.id_estado_cita);
+    }
+    
+    if (data.id_horario !== undefined) {
+      setClauses.push('id_horario = @id_horario');
+      request.input('id_horario', sql.Int, data.id_horario);
+    }
+    
+    if (setClauses.length === 0) {
+      throw new Error('No se proporcionaron campos para actualizar');
+    }
+    
+    const query = `UPDATE T_Citas SET ${setClauses.join(', ')} WHERE id_cita = @id_cita`;
+    console.log('Query SQL:', query);
+    let result = await request.query(query);
+    console.log('Resultado de la actualización:', result);
     return result;
   } catch (err) {
+    console.error('Error en updateCita:', err);
     throw err;
   }
 }
