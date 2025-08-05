@@ -43,6 +43,7 @@ const Navbar: React.FC<NavbarProps> = ({ usuario: usuarioProp }) => {
           <li><a href="/" className="hover:text-pink-600">Inicio</a></li>
           <li><a href="/conocenos" className="hover:text-pink-600">Conócenos</a></li>
           <li><a href="/servicio" className="hover:text-pink-600">Servicios</a></li>
+          <li><a href="/citas" className="hover:text-pink-600">Agendar Cita</a></li>
           <li><a href="/ubicacion" className="hover:text-pink-600">Ubicación</a></li>
           {/* Enlace para cualquier empleado (admin o empleado) */}
           {usuario && (usuario.tipo === 'admin' || usuario.tipo === 'empleado') && (
