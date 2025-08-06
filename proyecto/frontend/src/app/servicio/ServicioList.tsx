@@ -22,6 +22,8 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingServicio, setEditingServicio] = useState<Servicio | null>(null);
+  const [notification, setNotification] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [showNotification, setShowNotification] = useState(false);
   const [formData, setFormData] = useState({
     nombre_servicio: '',
     descripcion: '',
@@ -30,6 +32,18 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
     imagen: ''
   });
   const [imagePreview, setImagePreview] = useState<string>('');
+
+  // Efecto para manejar las notificaciones
+  React.useEffect(() => {
+    if (notification) {
+      setShowNotification(true);
+      const timer = setTimeout(() => {
+        setShowNotification(false);
+        setTimeout(() => setNotification(null), 400);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   // Obtener usuario del localStorage
   let usuario: any = null;
@@ -72,8 +86,10 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
           }
         });
         if (res.ok) {
-          alert('Servicio borrado correctamente');
-          window.location.reload();
+          setNotification({ type: 'success', message: 'Servicio eliminado correctamente' });
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
         } else {
           let errorMsg = 'Error desconocido';
           try {
@@ -82,10 +98,10 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
           } catch {
             errorMsg = 'No se pudo leer el error del backend';
           }
-          alert('Error al borrar: ' + errorMsg);
+          setNotification({ type: 'error', message: `Error al eliminar: ${errorMsg}` });
         }
       } catch (err: any) {
-        alert('Error al borrar: ' + (err?.message || 'Error desconocido'));
+        setNotification({ type: 'error', message: `Error al eliminar: ${err?.message || 'Error desconocido'}` });
       }
     }
   };
@@ -137,6 +153,12 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
     if (file) {
       // Verificar que sea una imagen
       if (file.type.startsWith('image/')) {
+        // Verificar tamaño del archivo (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          setNotification({ type: 'error', message: 'La imagen es muy grande. Máximo 5MB permitido.' });
+          return;
+        }
+        
         const reader = new FileReader();
         reader.onload = (event) => {
           const result = event.target?.result as string;
@@ -148,7 +170,7 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
         };
         reader.readAsDataURL(file);
       } else {
-        alert('Por favor selecciona un archivo de imagen válido');
+        setNotification({ type: 'error', message: 'Por favor selecciona un archivo de imagen válido (JPG, PNG, GIF, etc.)' });
       }
     }
   };
@@ -158,7 +180,7 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
     
     // Validar campos obligatorios
     if (!formData.nombre_servicio.trim() || !formData.duracion || !formData.precio) {
-      alert('Por favor completa todos los campos obligatorios (Nombre, Duración y Precio)');
+      setNotification({ type: 'error', message: 'Por favor completa todos los campos obligatorios (Nombre, Duración y Precio)' });
       return;
     }
 
@@ -186,9 +208,11 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
       });
 
       if (res.ok) {
-        alert('Servicio creado correctamente');
+        setNotification({ type: 'success', message: '¡Servicio creado exitosamente!' });
         handleCloseModal();
-        window.location.reload(); // Recargar para mostrar el nuevo servicio
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         let errorMsg = 'Error desconocido';
         try {
@@ -197,10 +221,10 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
         } catch {
           errorMsg = 'No se pudo leer el error del backend';
         }
-        alert('Error al crear servicio: ' + errorMsg);
+        setNotification({ type: 'error', message: `Error al crear servicio: ${errorMsg}` });
       }
     } catch (err: any) {
-      alert('Error al crear servicio: ' + (err?.message || 'Error desconocido'));
+      setNotification({ type: 'error', message: `Error al crear servicio: ${err?.message || 'Error desconocido'}` });
     } finally {
       setLoading(false);
     }
@@ -213,7 +237,7 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
     
     // Validar campos obligatorios
     if (!formData.nombre_servicio.trim() || !formData.duracion || !formData.precio) {
-      alert('Por favor completa todos los campos obligatorios (Nombre, Duración y Precio)');
+      setNotification({ type: 'error', message: 'Por favor completa todos los campos obligatorios (Nombre, Duración y Precio)' });
       return;
     }
 
@@ -242,9 +266,11 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
       });
 
       if (res.ok) {
-        alert('Servicio actualizado correctamente');
+        setNotification({ type: 'success', message: '¡Servicio actualizado exitosamente!' });
         handleCloseEditModal();
-        window.location.reload(); // Recargar para mostrar los cambios
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         let errorMsg = 'Error desconocido';
         try {
@@ -253,10 +279,10 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
         } catch {
           errorMsg = 'No se pudo leer el error del backend';
         }
-        alert('Error al actualizar servicio: ' + errorMsg);
+        setNotification({ type: 'error', message: `Error al actualizar servicio: ${errorMsg}` });
       }
     } catch (err: any) {
-      alert('Error al actualizar servicio: ' + (err?.message || 'Error desconocido'));
+      setNotification({ type: 'error', message: `Error al actualizar servicio: ${err?.message || 'Error desconocido'}` });
     } finally {
       setLoading(false);
     }
@@ -264,6 +290,51 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
 
   return (
     <div className={styles.servicioList}>
+      {/* Notificación emergente */}
+      {notification && (
+        <div
+          className={`notification-popup ${notification.type} ${showNotification ? 'show' : 'hide'}`}
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            zIndex: 1001,
+            background: notification.type === 'error' ? '#fee' : '#efe',
+            color: notification.type === 'error' ? '#c53030' : '#38a169',
+            padding: '16px 24px',
+            borderRadius: '12px',
+            border: `2px solid ${notification.type === 'error' ? '#fed7d7' : '#c6f6d5'}`,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+            fontWeight: 600,
+            fontSize: '1rem',
+            maxWidth: '500px',
+            textAlign: 'center',
+            opacity: showNotification ? 1 : 0,
+            transition: 'all 0.4s ease-in-out',
+            transform: showNotification ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-20px)'
+          }}
+        >
+          {notification.message}
+          <button
+            onClick={() => {
+              setShowNotification(false);
+              setTimeout(() => setNotification(null), 400);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              marginLeft: '12px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '1.2rem',
+              padding: '0 4px'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
       <style jsx global>{`
         .modal-input, .modal-textarea, 
         input[type="text"], input[type="number"], input[type="url"], textarea {
@@ -285,6 +356,60 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
         div[style*="zIndex: 1000"] textarea::placeholder {
           color: #666 !important;
           opacity: 1 !important;
+        }
+        
+        /* Animaciones para el modal */
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9) translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        /* Efectos de hover suaves */
+        input:focus, textarea:focus {
+          outline: none !important;
+        }
+        
+        /* Scroll personalizado para el modal */
+        div[style*="overflowY: auto"]::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        div[style*="overflowY: auto"]::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        
+        div[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
+          background: linear-gradient(135deg, #204d47 0%, #357a6c 100%);
+          border-radius: 10px;
+        }
+        
+        div[style*="overflowY: auto"]::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(135deg, #1a3f3a 0%, #2d6b5f 100%);
         }
       `}</style>
       
@@ -312,7 +437,7 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
                   window.location.href = `/citas?servicio=${encodeURIComponent(nombreServicio)}`;
                 }}
               >
-                📅 Reserva ahora
+                Reserva ahora
               </button>
             )}
             {(usuario && (usuario.tipo === 'admin' || usuario.tipo === 'empleado') && id !== undefined) && (
@@ -340,7 +465,7 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
                     e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 166, 35, 0.3)';
                   }}
                 >
-                  ✏️ Editar
+                  Editar
                 </button>
                 <button 
                   style={{
@@ -365,7 +490,7 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
                     e.currentTarget.style.boxShadow = '0 4px 12px rgba(211, 47, 47, 0.3)';
                   }}
                 >
-                  🗑️ Borrar
+                  Borrar
                 </button>
               </div>
             )}
@@ -421,47 +546,103 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          animation: 'fadeIn 0.3s ease-in-out'
         }}>
           <div style={{
             backgroundColor: '#fff',
-            borderRadius: '16px',
+            borderRadius: '24px',
             padding: '0',
-            maxWidth: '500px',
+            maxWidth: '550px',
             width: '90%',
             maxHeight: '90vh',
             overflowY: 'auto',
-            boxShadow: '0 4px 24px rgba(31,38,135,0.13)'
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            transform: 'scale(1)',
+            animation: 'slideIn 0.3s ease-out'
           }}>
             {/* Header del modal */}
             <div style={{
-              background: '#204d47',
-              borderRadius: '16px 16px 0 0',
-              padding: '24px 32px',
+              background: 'linear-gradient(135deg, #204d47 0%, #2d6b5f 50%, #357a6c 100%)',
+              borderRadius: '24px 24px 0 0',
+              padding: '32px 40px',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              <h3 style={{
-                color: '#ffffff',
-                fontWeight: 800,
-                fontSize: '1.5rem',
-                margin: 0
-              }}>
-                🛍️ Nuevo Servicio
-              </h3>
+              <div style={{
+                position: 'absolute',
+                top: '-50%',
+                right: '-10%',
+                width: '200px',
+                height: '200px',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+                borderRadius: '50%'
+              }}></div>
+              <div style={{
+                position: 'absolute',
+                bottom: '-30%',
+                left: '-5%',
+                width: '150px',
+                height: '150px',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)',
+                borderRadius: '50%'
+              }}></div>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <h3 style={{
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '1.75rem',
+                  margin: 0,
+                  textShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  Nuevo Servicio
+                </h3>
+                <p style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  margin: '8px 0 0 0',
+                  fontSize: '0.95rem',
+                  fontWeight: 400
+                }}>
+                  Crea un nuevo servicio para tu spa
+                </p>
+              </div>
               <button
                 onClick={handleCloseModal}
                 style={{
-                  fontSize: '1.5rem',
-                  background: 'none',
+                  fontSize: '1.8rem',
+                  background: 'rgba(255,255,255,0.1)',
                   border: 'none',
                   color: '#ffffff',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                  zIndex: 1
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                  e.currentTarget.style.transform = 'scale(1)';
                 }}
               >
                 ×
@@ -469,125 +650,275 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
             </div>
 
             {/* Contenido del modal */}
-            <div style={{ padding: '32px' }}>
+            <div style={{ padding: '40px' }}>
               <form onSubmit={handleSubmitServicio}>
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#204d47' }}>
-                    Nombre del Servicio *
+                <div style={{ marginBottom: '28px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '10px', 
+                    fontWeight: 700, 
+                    color: '#204d47',
+                    fontSize: '1rem'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      Nombre del Servicio *
+                    </div>
                   </label>
                   <input
                     type="text"
                     name="nombre_servicio"
                     value={formData.nombre_servicio}
                     onChange={handleInputChange}
-                    placeholder="Ej: Masaje Relajante"
+                    placeholder="Ej: Masaje Relajante, Facial Hidratante..."
                     maxLength={50}
                     required
                     style={{
                       width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e0e0e0',
-                      borderRadius: '8px',
+                      padding: '16px 20px',
+                      border: '2px solid #e8f5f3',
+                      borderRadius: '12px',
                       fontSize: '1rem',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      transition: 'all 0.3s ease',
+                      background: '#fafcfb',
+                      fontWeight: 500
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#204d47';
+                      e.target.style.background = '#fff';
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = '0 8px 25px rgba(32, 77, 71, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e8f5f3';
+                      e.target.style.background = '#fafcfb';
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
                 </div>
 
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#204d47' }}>
-                    Descripción
+                <div style={{ marginBottom: '28px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '10px', 
+                    fontWeight: 700, 
+                    color: '#204d47',
+                    fontSize: '1rem'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      Descripción
+                    </div>
                   </label>
                   <textarea
                     name="descripcion"
                     value={formData.descripcion}
                     onChange={handleInputChange}
-                    placeholder="Describe el servicio..."
-                    rows={3}
+                    placeholder="Describe los beneficios y características del servicio..."
+                    rows={4}
                     style={{
                       width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e0e0e0',
-                      borderRadius: '8px',
+                      padding: '16px 20px',
+                      border: '2px solid #e8f5f3',
+                      borderRadius: '12px',
                       fontSize: '1rem',
                       boxSizing: 'border-box',
-                      resize: 'vertical'
+                      resize: 'vertical',
+                      minHeight: '100px',
+                      transition: 'all 0.3s ease',
+                      background: '#fafcfb',
+                      fontWeight: 500,
+                      fontFamily: 'inherit'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#204d47';
+                      e.target.style.background = '#fff';
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = '0 8px 25px rgba(32, 77, 71, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e8f5f3';
+                      e.target.style.background = '#fafcfb';
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '28px' }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#204d47' }}>
-                      Duración (minutos) *
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '10px', 
+                      fontWeight: 700, 
+                      color: '#204d47',
+                      fontSize: '1rem'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        Duración *
+                      </div>
                     </label>
-                    <input
-                      type="number"
-                      name="duracion"
-                      value={formData.duracion}
-                      onChange={handleInputChange}
-                      placeholder="60"
-                      min="1"
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e0e0e0',
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        boxSizing: 'border-box'
-                      }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="number"
+                        name="duracion"
+                        value={formData.duracion}
+                        onChange={handleInputChange}
+                        placeholder="60"
+                        min="1"
+                        required
+                        style={{
+                          width: '100%',
+                          padding: '16px 20px 16px 50px',
+                          border: '2px solid #e8f5f3',
+                          borderRadius: '12px',
+                          fontSize: '1rem',
+                          boxSizing: 'border-box',
+                          transition: 'all 0.3s ease',
+                          background: '#fafcfb',
+                          fontWeight: 500
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = '#204d47';
+                          e.target.style.background = '#fff';
+                          e.target.style.transform = 'translateY(-1px)';
+                          e.target.style.boxShadow = '0 8px 25px rgba(32, 77, 71, 0.1)';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = '#e8f5f3';
+                          e.target.style.background = '#fafcfb';
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = 'none';
+                        }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        left: '18px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#666',
+                        fontSize: '0.9rem',
+                        fontWeight: 600
+                      }}>min</span>
+                    </div>
                   </div>
 
                   <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#204d47' }}>
-                      Precio ($) *
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '10px', 
+                      fontWeight: 700, 
+                      color: '#204d47',
+                      fontSize: '1rem'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        Precio *
+                      </div>
                     </label>
-                    <input
-                      type="number"
-                      name="precio"
-                      value={formData.precio}
-                      onChange={handleInputChange}
-                      placeholder="150.00"
-                      min="0"
-                      step="0.01"
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e0e0e0',
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        boxSizing: 'border-box'
-                      }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="number"
+                        name="precio"
+                        value={formData.precio}
+                        onChange={handleInputChange}
+                        placeholder="150.00"
+                        min="0"
+                        step="0.01"
+                        required
+                        style={{
+                          width: '100%',
+                          padding: '16px 20px 16px 45px',
+                          border: '2px solid #e8f5f3',
+                          borderRadius: '12px',
+                          fontSize: '1rem',
+                          boxSizing: 'border-box',
+                          transition: 'all 0.3s ease',
+                          background: '#fafcfb',
+                          fontWeight: 500
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = '#204d47';
+                          e.target.style.background = '#fff';
+                          e.target.style.transform = 'translateY(-1px)';
+                          e.target.style.boxShadow = '0 8px 25px rgba(32, 77, 71, 0.1)';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = '#e8f5f3';
+                          e.target.style.background = '#fafcfb';
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = 'none';
+                        }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        left: '18px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#666',
+                        fontSize: '1.1rem',
+                        fontWeight: 700
+                      }}>$</span>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#204d47' }}>
-                    Imagen del Servicio
+                <div style={{ marginBottom: '32px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '12px', 
+                    fontWeight: 700, 
+                    color: '#204d47',
+                    fontSize: '1rem'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      Imagen del Servicio
+                    </div>
                   </label>
                   
                   {/* Opciones de imagen */}
-                  <div style={{ marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                       <label style={{ 
-                        background: '#f8f9fa', 
+                        background: 'linear-gradient(135deg, #f8fffe 0%, #e8f5f3 100%)', 
                         border: '2px dashed #204d47', 
-                        borderRadius: '8px', 
-                        padding: '20px', 
+                        borderRadius: '16px', 
+                        padding: '24px', 
                         textAlign: 'center', 
                         cursor: 'pointer',
                         flex: 1,
-                        transition: 'all 0.2s ease'
+                        transition: 'all 0.3s ease',
+                        fontWeight: 600,
+                        color: '#204d47'
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.background = '#e8f5f3';
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #e8f5f3 0%, #d1ede8 100%)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(32, 77, 71, 0.15)';
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.background = '#f8f9fa';
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #f8fffe 0%, #e8f5f3 100%)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
                       }}>
                         <input
                           type="file"
@@ -595,11 +926,35 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
                           onChange={handleFileChange}
                           style={{ display: 'none' }}
                         />
-                        📁 Subir desde dispositivo
+                        <div style={{ fontSize: '1.2rem', marginBottom: '8px', fontWeight: 600 }}>Archivo</div>
+                        <div>Subir desde dispositivo</div>
+                        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>
+                          JPG, PNG, GIF (max 5MB)
+                        </div>
                       </label>
                     </div>
                     
-                    <div style={{ textAlign: 'center', margin: '8px 0', color: '#666' }}>o</div>
+                    <div style={{ 
+                      textAlign: 'center', 
+                      margin: '16px 0', 
+                      color: '#666',
+                      position: 'relative'
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: 0,
+                        right: 0,
+                        height: '1px',
+                        background: 'linear-gradient(to right, transparent, #ddd, transparent)'
+                      }}></div>
+                      <span style={{
+                        background: 'white',
+                        padding: '0 16px',
+                        fontSize: '0.9rem',
+                        fontWeight: 500
+                      }}>o ingresa una URL</span>
+                    </div>
                     
                     <input
                       type="url"
@@ -609,30 +964,53 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
                       placeholder="https://ejemplo.com/imagen.jpg"
                       style={{
                         width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e0e0e0',
-                        borderRadius: '8px',
+                        padding: '16px 20px',
+                        border: '2px solid #e8f5f3',
+                        borderRadius: '12px',
                         fontSize: '1rem',
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        transition: 'all 0.3s ease',
+                        background: '#fafcfb',
+                        fontWeight: 500
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#204d47';
+                        e.target.style.background = '#fff';
+                        e.target.style.transform = 'translateY(-1px)';
+                        e.target.style.boxShadow = '0 8px 25px rgba(32, 77, 71, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e8f5f3';
+                        e.target.style.background = '#fafcfb';
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = 'none';
                       }}
                     />
                   </div>
 
                   {/* Preview de la imagen */}
                   {imagePreview && (
-                    <div style={{ marginTop: '12px', textAlign: 'center' }}>
+                    <div style={{ 
+                      marginTop: '20px', 
+                      textAlign: 'center',
+                      background: 'linear-gradient(135deg, #f8fffe 0%, #e8f5f3 100%)',
+                      borderRadius: '16px',
+                      padding: '20px',
+                      border: '2px solid #e8f5f3'
+                    }}>
                       <img 
                         src={imagePreview} 
                         alt="Preview" 
                         style={{ 
-                          maxWidth: '200px', 
-                          maxHeight: '150px', 
-                          borderRadius: '8px',
+                          maxWidth: '250px', 
+                          maxHeight: '200px', 
+                          borderRadius: '12px',
                           objectFit: 'cover',
-                          border: '2px solid #e0e0e0'
+                          border: '3px solid #fff',
+                          boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
                         }} 
                       />
-                      <div style={{ marginTop: '8px' }}>
+                      <div style={{ marginTop: '12px' }}>
                         <button
                           type="button"
                           onClick={() => {
@@ -640,34 +1018,64 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
                             setFormData(prev => ({ ...prev, imagen: '' }));
                           }}
                           style={{
-                            background: '#dc3545',
+                            background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                            cursor: 'pointer'
+                            borderRadius: '8px',
+                            padding: '8px 16px',
+                            fontSize: '0.9rem',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 15px rgba(220, 53, 69, 0.3)';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
-                          🗑️ Quitar
+                          Quitar imagen
                         </button>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'flex-end', 
+                  gap: '16px',
+                  marginTop: '40px',
+                  paddingTop: '24px',
+                  borderTop: '1px solid #e8f5f3'
+                }}>
                   <button
                     type="button"
                     onClick={handleCloseModal}
                     style={{
-                      background: '#eee',
-                      color: '#204d47',
-                      borderRadius: '8px',
-                      padding: '12px 24px',
-                      border: 'none',
+                      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                      color: '#495057',
+                      borderRadius: '12px',
+                      padding: '14px 28px',
+                      border: '2px solid #dee2e6',
                       fontWeight: 700,
-                      cursor: 'pointer'
+                      fontSize: '1rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      minWidth: '120px'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
                     Cancelar
@@ -676,16 +1084,51 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
                     type="submit"
                     disabled={loading}
                     style={{
-                      background: loading ? '#ccc' : '#4f46e5',
+                      background: loading 
+                        ? 'linear-gradient(135deg, #ccc 0%, #aaa 100%)' 
+                        : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
                       color: 'white',
-                      borderRadius: '8px',
-                      padding: '12px 24px',
+                      borderRadius: '12px',
+                      padding: '14px 28px',
                       border: 'none',
                       fontWeight: 700,
-                      cursor: loading ? 'not-allowed' : 'pointer'
+                      fontSize: '1rem',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.3s ease',
+                      minWidth: '160px',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                    onMouseOver={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #3730a3 0%, #6b21a8 100%)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(79, 70, 229, 0.4)';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
                     }}
                   >
-                    {loading ? 'Creando...' : 'Crear Servicio'}
+                    {loading ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{
+                          width: '18px',
+                          height: '18px',
+                          border: '2px solid #fff',
+                          borderTop: '2px solid transparent',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }}></div>
+                        Creando...
+                      </div>
+                    ) : (
+                      'Crear Servicio'
+                    )}
                   </button>
                 </div>
               </form>
@@ -876,7 +1319,7 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
                           onChange={handleFileChange}
                           style={{ display: 'none' }}
                         />
-                        📁 Cambiar imagen
+                        Cambiar imagen
                       </label>
                     </div>
                     
@@ -930,7 +1373,7 @@ const ServicioList: React.FC<ServicioListProps> = ({ servicios }) => {
                             cursor: 'pointer'
                           }}
                         >
-                          🗑️ Quitar
+                          Quitar
                         </button>
                       </div>
                     </div>

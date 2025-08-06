@@ -143,6 +143,41 @@ const Perfil = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [openSnackbar, setOpenSnackbar] = React.useState(false);
 
+  // Función para obtener el perfil completo del backend
+  const obtenerPerfilCompleto = async (userId: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (res.ok) {
+        const perfilCompleto = await res.json();
+        console.log('Perfil completo obtenido:', perfilCompleto);
+        
+        // Actualizar los campos que faltan
+        if (perfilCompleto.telefono) {
+          setTelefono(perfilCompleto.telefono);
+        }
+        if (perfilCompleto.fecha_nacimiento) {
+          setFechaNacimiento(perfilCompleto.fecha_nacimiento.split("T")[0]);
+        }
+        
+        // Actualizar el usuario en localStorage con la información completa
+        const usuarioActualizado = {
+          ...usuario,
+          ...perfilCompleto
+        };
+        localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
+        setUsuario(usuarioActualizado);
+      }
+    } catch (error) {
+      console.error('Error al obtener perfil completo:', error);
+    }
+  };
+
   React.useEffect(() => {
     const usuarioLocal = localStorage.getItem("usuario");
     if (usuarioLocal) {
@@ -170,9 +205,14 @@ const Perfil = () => {
         }
       } else {
         setNombre(user.nombre || user.nombre_cliente || "");
-        setTelefono(user.telefono || "");
+        setTelefono(user.telefono || user.phone || "");
         setEmail(user.email || user.correo_electronico || "");
         setFechaNacimiento(user.fecha_nacimiento || user.fecha_registro?.split("T")[0] || "");
+        
+        // Si no hay teléfono o fecha de nacimiento, intentar obtenerlos del backend
+        if (!user.telefono && !user.fecha_nacimiento) {
+          obtenerPerfilCompleto(user.id);
+        }
       }
     }
     // Cargar catálogos
@@ -555,13 +595,24 @@ const Perfil = () => {
                     Editar perfil
                   </Button>
                   {!esEmpleado && (
-                    <Button
-                      variant="outlined"
-                      sx={{ background: "#fff", color: "#357a6c", border: "2px solid #357a6c", borderRadius: "14px", fontWeight: 700, fontFamily: "Montserrat, sans-serif", fontSize: "1.25rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.10)", letterSpacing: "0.03em", px: 6, py: 2.5, '&:hover': { background: "#e0f1ee" } }}
-                      onClick={() => router.push("/perfil/historial-citas")}
-                    >
-                      Historial de citas
-                    </Button>
+                    <>
+                      <Button
+                        variant="outlined"
+                        sx={{ background: "#fff", color: "#357a6c", border: "2px solid #357a6c", borderRadius: "14px", fontWeight: 700, fontFamily: "Montserrat, sans-serif", fontSize: "1.25rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.10)", letterSpacing: "0.03em", px: 6, py: 2.5, '&:hover': { background: "#e0f1ee" } }}
+                        onClick={() => router.push("/perfil/historial-citas")}
+                      >
+                        Historial de citas
+                      </Button>
+                      {(!telefono || !fechaNacimiento) && (
+                        <Button
+                          variant="outlined"
+                          sx={{ background: "#fff", color: "#ff6b35", border: "2px solid #ff6b35", borderRadius: "14px", fontWeight: 700, fontFamily: "Montserrat, sans-serif", fontSize: "1.1rem", boxShadow: "0 2px 8px 0 rgba(31,38,135,0.10)", letterSpacing: "0.03em", px: 4, py: 2.5, '&:hover': { background: "#fff5f2" } }}
+                          onClick={() => obtenerPerfilCompleto(usuario.id)}
+                        >
+                          Recargar datos
+                        </Button>
+                      )}
+                    </>
                   )}
                 </Box>
               </>

@@ -62,7 +62,7 @@ const Conocenos = () => {
             <div className="team-grid">
               <div className="team-member">
                 <img 
-                  src="/images/perro2.jpg" 
+                  src="/images/melissa.jpg" 
                   alt="Mariana González" 
                   className="member-avatar"
                 />
@@ -75,7 +75,7 @@ const Conocenos = () => {
               
               <div className="team-member">
                 <img 
-                  src="/images/perro1.jpg" 
+                  src="/images/brau.png" 
                   alt="Laura Méndez" 
                   className="member-avatar"
                 />
@@ -88,7 +88,7 @@ const Conocenos = () => {
               
               <div className="team-member">
                 <img 
-                  src="/images/perro3.jpg" 
+                  src="/images/chapa.jpeg" 
                   alt="Ricardo Torres" 
                   className="member-avatar"
                 />
@@ -101,7 +101,7 @@ const Conocenos = () => {
 
               <div className="team-member">
                 <img 
-                  src="/images/perro4.jpg" 
+                  src="/images/flor.jpeg" 
                   alt="Ricardo Torres" 
                   className="member-avatar"
                 />

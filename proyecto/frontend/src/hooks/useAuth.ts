@@ -7,6 +7,18 @@ export interface User {
   nombre: string;
   email: string;
   tipo: string;
+  // Campos adicionales opcionales
+  nombre_cliente?: string;
+  telefono?: string;
+  fecha_nacimiento?: string;
+  correo_electronico?: string;
+  nombre_empleado?: string;
+  id_especialidad?: number;
+  id_horarios?: number[];
+  especialidad?: string;
+  horarios?: any[];
+  // Permitir campos adicionales
+  [key: string]: any;
 }
 
 export function useAuth() {

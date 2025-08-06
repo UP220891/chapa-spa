@@ -773,9 +773,10 @@ interface EditCitaModalProps {
   onSave: (nuevaCita: any) => void;
   horasDisponibles: Horario[];
   servicios: ServicioModal[];
+  citas: Cita[]; // Agregar las citas para validar conflictos
 }
 
-function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, servicios }: EditCitaModalProps) {
+function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, servicios, citas }: EditCitaModalProps) {
   // Inicializar el id del servicio correctamente
   const servicioInicial = (() => {
     // Buscar por id primero
@@ -819,13 +820,14 @@ function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, ser
   });
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-        <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', zIndex: 10, position: 'relative' }}>
-          <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0, background: 'white', padding: '8px', borderRadius: '4px', border: '1px solid #204d47' }}>
+      <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '0', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+        <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#204d47', borderRadius: '16px 16px 0 0', padding: '24px 32px' }}>
+          <h3 style={{ color: '#ffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
             Editar cita
           </h3>
-          <button className="close-btn" onClick={onClose} style={{ fontSize: '1.5rem', background: 'white', border: '1px solid #204d47', color: '#204d47', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px' }}>×</button>
+          <button className="close-btn" onClick={onClose} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}>×</button>
         </div>
+        <div style={{ padding: '0 32px 32px 32px' }}>
         <form onSubmit={async (e) => {
           e.preventDefault();
           
@@ -841,6 +843,68 @@ function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, ser
           });
           
           const idHorario = horarioSeleccionado ? horarioSeleccionado.id_horario : form.hora;
+
+          // VALIDACIÓN DE CONFLICTOS AL EDITAR
+          // Solo validar si se cambió la hora (para permitir editar otros campos)
+          if (form.hora !== editAppointment.hora) {
+            // Obtener la fecha de la cita que se está editando
+            let fechaCitaISO = '';
+            if (editAppointment.fecha && typeof editAppointment.fecha === 'string') {
+              if (/^\d{2}\/\d{2}\/\d{4}$/.test(editAppointment.fecha)) {
+                // Convertir DD/MM/YYYY a YYYY-MM-DD
+                const [d, m, y] = editAppointment.fecha.split('/');
+                fechaCitaISO = `${y}-${m}-${d}`;
+              } else if (editAppointment.fecha.includes('T')) {
+                fechaCitaISO = editAppointment.fecha.split('T')[0];
+              } else if (/^\d{4}-\d{2}-\d{2}$/.test(editAppointment.fecha)) {
+                fechaCitaISO = editAppointment.fecha;
+              }
+            }
+
+            // Formatear la nueva hora seleccionada a HH:mm:ss
+            const nuevaHoraSQL = form.hora + ':00';
+
+            // Verificar si ya existe otra cita en la misma fecha y hora (excluyendo la actual)
+            const citaConflicto = citas.find(cita => {
+              // No comparar con la cita actual que se está editando
+              if (cita.id === editAppointment.id) return false;
+
+              // Obtener la fecha de la cita existente en formato ISO
+              let fechaOtraCitaISO = '';
+              if (cita.fecha && typeof cita.fecha === 'string') {
+                if (/^\d{2}\/\d{2}\/\d{4}$/.test(cita.fecha)) {
+                  // Convertir DD/MM/YYYY a YYYY-MM-DD
+                  const [d, m, y] = cita.fecha.split('/');
+                  fechaOtraCitaISO = `${y}-${m}-${d}`;
+                } else if (cita.fecha.includes('T')) {
+                  fechaOtraCitaISO = cita.fecha.split('T')[0];
+                } else if (/^\d{4}-\d{2}-\d{2}$/.test(cita.fecha)) {
+                  fechaOtraCitaISO = cita.fecha;
+                }
+              }
+
+              // Formatear la hora de la cita existente a HH:mm:ss
+              let horaCitaSQL = '';
+              if (cita.hora) {
+                if (/^\d{2}:\d{2}$/.test(cita.hora)) {
+                  horaCitaSQL = `${cita.hora}:00`;
+                } else if (/^\d{2}:\d{2}:\d{2}$/.test(cita.hora)) {
+                  horaCitaSQL = cita.hora;
+                }
+              }
+
+              // Verificar si es la misma fecha y hora
+              const mismafecha = fechaOtraCitaISO === fechaCitaISO;
+              const mismaHora = horaCitaSQL === nuevaHoraSQL;
+              
+              return mismafecha && mismaHora && cita.estado !== 'Cancelada';
+            });
+
+            if (citaConflicto) {
+              alert(`⚠️ Ya existe una cita programada para el ${fechaCitaISO} a las ${form.hora}.\n\nCliente: ${citaConflicto.cliente}\nServicio: ${citaConflicto.servicio}\n\nPor favor selecciona otra hora disponible.`);
+              return;
+            }
+          }
           
           console.log('Datos a enviar:', {
             cliente: form.cliente,
@@ -919,6 +983,7 @@ function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, ser
             <button type="submit" className="btn-submit" style={{ background: '#357a6c', color: 'white', borderRadius: '6px', padding: '8px 16px', border: 'none', fontWeight: 700 }}>Guardar</button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
@@ -939,7 +1004,14 @@ const AdminCalendarContent = () => {
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
   const [showEmployeesManager, setShowEmployeesManager] = useState(false);
   const [showClientsManager, setShowClientsManager] = useState(false);
-  const handleNewAppointment = () => setShowAppointmentForm(true);
+  const handleNewAppointment = async () => {
+    // Recargar citas antes de abrir el formulario
+    console.log('🔄 Recargando citas antes de abrir formulario...');
+    const citasActualizadas = await getCitas();
+    const citasMapeadas = citasActualizadas.map(mapearCita);
+    setCitas(citasMapeadas);
+    setShowAppointmentForm(true);
+  };
   const handleEmployeesManager = () => setShowEmployeesManager(true);
   const handleClientsManager = () => setShowClientsManager(true);
   // Utilidades para el calendario
@@ -1060,20 +1132,95 @@ const AdminCalendarContent = () => {
     const horariosDelDia = horarios.filter(h => h.dia === diaSemana);
     // Si es domingo, dejar el array vacío pero NO retornar del componente
     if (diaSemana !== 'Domingo') {
-      // Obtener las horas ocupadas en ese día
+      // Obtener las horas ocupadas en ese día (MEJORADA)
       const fechaStr = selectedDate.toISOString().split('T')[0];
       const horasOcupadas = citas
-        .filter(cita => cita.fecha === fechaStr)
-        .map(cita => cita.hora);
+        .filter(cita => {
+          // Mejorar el filtro de fecha para manejar diferentes formatos
+          let fechaCitaISO = '';
+          if (cita.fecha && typeof cita.fecha === 'string') {
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(cita.fecha)) {
+              // Convertir DD/MM/YYYY a YYYY-MM-DD
+              const [d, m, y] = cita.fecha.split('/');
+              fechaCitaISO = `${y}-${m}-${d}`;
+            } else if (cita.fecha.includes('T')) {
+              fechaCitaISO = cita.fecha.split('T')[0];
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(cita.fecha)) {
+              fechaCitaISO = cita.fecha;
+            }
+          }
+          return fechaCitaISO === fechaStr && cita.estado !== 'Cancelada';
+        })
+        .map(cita => {
+          // CORREGIR: Usar la hora real del horario, no la hora mal formateada del backend
+          let horaSQL = '';
+          
+          // Si la hora de la cita está mal (00:00:00), usar la hora del horario
+          const horaEsInvalida = !cita.hora || cita.hora === '00:00:00' || cita.hora === '00:00';
+          
+          if (horaEsInvalida && cita.id_horario) {
+            // Buscar el horario correspondiente
+            const horarioCorrespondiente = horarios.find(h => h.id_horario === cita.id_horario);
+            if (horarioCorrespondiente && horarioCorrespondiente.hora_inicio) {
+              // Convertir la hora del horario a formato HH:mm:ss
+              if (horarioCorrespondiente.hora_inicio.includes('T')) {
+                horaSQL = horarioCorrespondiente.hora_inicio.split('T')[1].substring(0,8);
+              } else {
+                horaSQL = horarioCorrespondiente.hora_inicio.substring(0,8);
+              }
+              console.log(`🔧 Usando hora del horario para filtro: ID ${cita.id_horario} → ${horaSQL}`);
+            }
+          } else if (cita.hora) {
+            // Normalizar hora normal a formato HH:mm:ss
+            if (/^\d{2}:\d{2}$/.test(cita.hora)) {
+              horaSQL = `${cita.hora}:00`;
+            } else if (/^\d{2}:\d{2}:\d{2}$/.test(cita.hora)) {
+              horaSQL = cita.hora;
+            }
+          }
+          
+          return horaSQL;
+        })
+        .filter(hora => hora !== ''); // Eliminar horas vacías
+      
+      console.log('📅 Filtro de horarios detallado:', {
+        fecha: fechaStr,
+        diaSemana,
+        horariosDelDia: horariosDelDia.length,
+        citasTotal: citas.length,
+        citasDelDiaFiltradas: citas.filter(cita => {
+          let fechaCitaISO = '';
+          if (cita.fecha && typeof cita.fecha === 'string') {
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(cita.fecha)) {
+              const [d, m, y] = cita.fecha.split('/');
+              fechaCitaISO = `${y}-${m}-${d}`;
+            } else if (cita.fecha.includes('T')) {
+              fechaCitaISO = cita.fecha.split('T')[0];
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(cita.fecha)) {
+              fechaCitaISO = cita.fecha;
+            }
+          }
+          return fechaCitaISO === fechaStr && cita.estado !== 'Cancelada';
+        }).length,
+        horasOcupadas
+      });
+
       // Filtrar horarios que no estén ocupados
       horasDisponibles = horariosDelDia.filter(horario => {
         // Convertir hora_inicio a formato 'HH:mm:ss' para comparar
-        const inicio = new Date(`${fechaStr}T${horario.hora_inicio}`);
-        const hh = inicio.getHours().toString().padStart(2, '0');
-        const mm = inicio.getMinutes().toString().padStart(2, '0');
-        const ss = inicio.getSeconds().toString().padStart(2, '0');
-        const horaComparar = `${hh}:${mm}:${ss}`;
-        return !horasOcupadas.includes(horaComparar);
+        let horaComparar = '';
+        if (horario.hora_inicio.includes('T')) {
+          horaComparar = horario.hora_inicio.split('T')[1].substring(0,8);
+        } else {
+          horaComparar = horario.hora_inicio.substring(0,8);
+        }
+        const estaOcupada = horasOcupadas.includes(horaComparar);
+        
+        if (estaOcupada) {
+          console.log(`⏰ Hora ${horaComparar} está ocupada`);
+        }
+        
+        return !estaOcupada;
       });
     }
     // Si es domingo, horasDisponibles queda vacío
@@ -1102,6 +1249,11 @@ const AdminCalendarContent = () => {
       return;
     }
     try {
+      // PASO 1: Recargar citas actualizadas antes de validar
+      console.log('🔄 Recargando citas antes de validar...');
+      const citasActualizadasValidacion = await getCitas();
+      const citasMapeadasValidacion = citasActualizadasValidacion.map(mapearCita);
+      
       // Buscar el cliente y servicio seleccionados
       const clienteObj = clientes.find(c => `${c.nombre_cliente} ${c.apellido_cliente}` === newAppointment.cliente);
       const servicioObj = servicios.find(s => s.nombre === newAppointment.servicio);
@@ -1115,8 +1267,9 @@ const AdminCalendarContent = () => {
         alert('Selecciona una hora válida.');
         return;
       }
-      // Construir el objeto para la API
-      // Formatear hora_inicio a 'HH:mm:ss' (sin fecha ni milisegundos)
+
+      // VALIDACIÓN CRUCIAL: Verificar conflictos de horarios
+      const fechaSeleccionada = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
       const horaSQL = (() => {
         let h = '';
         if (horarioObj.hora_inicio.includes('T')) {
@@ -1126,6 +1279,96 @@ const AdminCalendarContent = () => {
         }
         return h;
       })();
+
+      console.log('🔍 Validando conflictos:', {
+        fechaSeleccionada,
+        horaSQL,
+        totalCitas: citasMapeadasValidacion.length,
+        citasDelDia: citasMapeadasValidacion.filter(c => {
+          let fechaCitaISO = '';
+          if (c.fecha && typeof c.fecha === 'string') {
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(c.fecha)) {
+              const [d, m, y] = c.fecha.split('/');
+              fechaCitaISO = `${y}-${m}-${d}`;
+            } else if (c.fecha.includes('T')) {
+              fechaCitaISO = c.fecha.split('T')[0];
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(c.fecha)) {
+              fechaCitaISO = c.fecha;
+            }
+          }
+          return fechaCitaISO === fechaSeleccionada;
+        })
+      });
+
+      // Verificar si ya existe una cita en la misma fecha y hora
+      const citaExistente = citasMapeadasValidacion.find(cita => {
+        // Obtener la fecha de la cita existente en formato ISO
+        let fechaCitaISO = '';
+        if (cita.fecha && typeof cita.fecha === 'string') {
+          if (/^\d{2}\/\d{2}\/\d{4}$/.test(cita.fecha)) {
+            // Convertir DD/MM/YYYY a YYYY-MM-DD
+            const [d, m, y] = cita.fecha.split('/');
+            fechaCitaISO = `${y}-${m}-${d}`;
+          } else if (cita.fecha.includes('T')) {
+            fechaCitaISO = cita.fecha.split('T')[0];
+          } else if (/^\d{4}-\d{2}-\d{2}$/.test(cita.fecha)) {
+            fechaCitaISO = cita.fecha;
+          }
+        }
+
+        // Formatear la hora de la cita existente a HH:mm:ss
+        let horaCitaSQL = '';
+        
+        // CORREGIR: Si la hora de la cita está mal (00:00:00), usar la hora del horario
+        const horaEsInvalida = !cita.hora || cita.hora === '00:00:00' || cita.hora === '00:00';
+        
+        if (horaEsInvalida && cita.id_horario) {
+          // Buscar el horario correspondiente
+          const horarioCorrespondiente = horarios.find(h => h.id_horario === cita.id_horario);
+          if (horarioCorrespondiente && horarioCorrespondiente.hora_inicio) {
+            // Convertir la hora del horario a formato HH:mm:ss
+            if (horarioCorrespondiente.hora_inicio.includes('T')) {
+              horaCitaSQL = horarioCorrespondiente.hora_inicio.split('T')[1].substring(0,8);
+            } else {
+              horaCitaSQL = horarioCorrespondiente.hora_inicio.substring(0,8);
+            }
+            console.log(`🔧 Usando hora del horario para validación: ID ${cita.id_horario} → ${horaCitaSQL}`);
+          }
+        } else if (cita.hora) {
+          // Usar la hora normal
+          if (/^\d{2}:\d{2}$/.test(cita.hora)) {
+            horaCitaSQL = `${cita.hora}:00`;
+          } else if (/^\d{2}:\d{2}:\d{2}$/.test(cita.hora)) {
+            horaCitaSQL = cita.hora;
+          }
+        }
+
+        // Verificar si es la misma fecha y hora
+        const mismafecha = fechaCitaISO === fechaSeleccionada;
+        const mismaHora = horaCitaSQL === horaSQL;
+        
+        console.log('🔍 Comparando cita:', {
+          citaId: cita.id,
+          fechaCitaISO,
+          horaCitaSQL,
+          fechaSeleccionada,
+          horaSQL,
+          mismafecha,
+          mismaHora,
+          estado: cita.estado
+        });
+        
+        return mismafecha && mismaHora && cita.estado !== 'Cancelada';
+      });
+
+      if (citaExistente) {
+        console.log('❌ CONFLICTO DETECTADO:', citaExistente);
+        alert(`⚠️ Ya existe una cita programada para el ${fechaSeleccionada} a las ${horaSQL.substring(0,5)}.\n\nCliente: ${citaExistente.cliente}\nServicio: ${citaExistente.servicio}\n\nPor favor selecciona otra hora disponible.`);
+        return;
+      } else {
+        console.log('✅ No hay conflictos, procediendo a crear la cita...');
+      }
+      // Construir el objeto para la API
       const citaNueva = {
         fecha: selectedDate ? selectedDate.toISOString().split('T')[0] : '',
         hora: horaSQL,
@@ -1183,7 +1426,7 @@ const AdminCalendarContent = () => {
       switch (estadoRaw) {
         case 1: estadoFinal = 'Agendada'; break;
         case 2: estadoFinal = 'Completada'; break;
-        case 3: estadoFinal = 'Cancelada'; break;
+        case 3: estadoFinal = 'No asistió'; break;
         case 4: estadoFinal = 'No asistió'; break;
         default: estadoFinal = 'Agendada';
       }
@@ -1210,10 +1453,31 @@ const AdminCalendarContent = () => {
     if (typeof servicioLimpio === 'string') {
       servicioLimpio = servicioLimpio.replace(/\s+/g, ' ').replace(/\t/g, '').trim();
     }
-    // Formatear la hora a HH:mm
+    
+    // CORREGIR FORMATEO DE HORA - Usar horario real si la hora está mal
     let horaFormateada = '';
-    if (c.hora) {
-      // Si viene como '00:00', mostrar '00:00'
+    
+    // Si c.hora está vacía o es '00:00:00', intentar usar la hora del horario
+    const horaEsInvalida = !c.hora || c.hora === '00:00:00' || c.hora === '00:00';
+    
+    if (horaEsInvalida && c.id_horario) {
+      // Buscar el horario correspondiente
+      const horarioCorrespondiente = horarios.find(h => h.id_horario === c.id_horario);
+      if (horarioCorrespondiente && horarioCorrespondiente.hora_inicio) {
+        // Extraer hora del horario
+        if (horarioCorrespondiente.hora_inicio.includes('T')) {
+          horaFormateada = horarioCorrespondiente.hora_inicio.split('T')[1].substring(0,5);
+        } else if (/^\d{2}:\d{2}:\d{2}/.test(horarioCorrespondiente.hora_inicio)) {
+          horaFormateada = horarioCorrespondiente.hora_inicio.substring(0,5);
+        } else {
+          horaFormateada = horarioCorrespondiente.hora_inicio;
+        }
+        console.log(`🔧 Hora corregida para cita ${c.id_cita}: ${c.hora} → ${horaFormateada}`);
+      } else {
+        horaFormateada = 'No asignada';
+      }
+    } else if (c.hora) {
+      // Usar la hora que viene del backend normalmente
       if (/^\d{2}:\d{2}$/.test(c.hora)) {
         horaFormateada = c.hora;
       } else if (/^\d{2}:\d{2}:\d{2}$/.test(c.hora)) {
@@ -1236,6 +1500,8 @@ const AdminCalendarContent = () => {
           horaFormateada = c.hora;
         }
       }
+    } else {
+      horaFormateada = 'No asignada';
     }
     return {
       id: c.id_cita,
@@ -1323,12 +1589,16 @@ const AdminCalendarContent = () => {
     if (!date) return;
     setSelectedDate(date);
     // Recargar citas antes de mostrar el modal
+    console.log('🔄 Recargando citas para el día:', date.toISOString().split('T')[0]);
     const citasActualizadas = await getCitas();
     const citasMapeadas = citasActualizadas.map(mapearCita);
     setCitas(citasMapeadas);
     const citasDia = getCitasForDate(date);
-    console.log('Citas en el estado:', citasMapeadas);
-    console.log('Fecha seleccionada:', date.toISOString().split('T')[0]);
+    console.log('📊 Citas encontradas:', {
+      totalCitas: citasMapeadas.length,
+      citasDelDia: citasDia.length,
+      fecha: date.toISOString().split('T')[0]
+    });
     setCitasDelDia(citasDia);
     setShowDayCitasModal(true);
   };
@@ -1600,13 +1870,14 @@ const AdminCalendarContent = () => {
       {/* Modal para nueva cita */}
       {showAppointmentForm && (
         <div className="modal-overlay" onClick={handleCloseAppointmentForm}>
-          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', zIndex: 10, position: 'relative' }}>
-              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0, background: 'white', padding: '8px', borderRadius: '4px', border: '1px solid #204d47' }}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '0', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#204d47', borderRadius: '16px 16px 0 0', padding: '24px 32px' }}>
+              <h3 style={{ color: '#ffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
                 Nueva cita para el día {selectedDate ? selectedDate.toLocaleDateString('es-MX') : ''}
               </h3>
-              <button className="close-btn" onClick={handleCloseAppointmentForm} style={{ fontSize: '1.5rem', background: 'white', border: '1px solid #204d47', color: '#204d47', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px' }}>×</button>
+              <button className="close-btn" onClick={handleCloseAppointmentForm} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}>×</button>
             </div>
+            <div style={{ padding: '0 32px 32px 32px' }}>
             {/* Si es domingo, mostrar mensaje de cerrado */}
             {selectedDate && selectedDate.getDay() === 0 ? (
               <div style={{ textAlign: 'center', color: '#e53e3e', fontWeight: 700, fontSize: '1.2rem', margin: '32px 0' }}>
@@ -1707,6 +1978,7 @@ const AdminCalendarContent = () => {
                 </div>
               </form>
             )}
+            </div>
           </div>
         </div>
       )}
@@ -1742,6 +2014,7 @@ const AdminCalendarContent = () => {
         <EditCitaModal
           editAppointment={editAppointment}
           onClose={() => setShowEditForm(false)}
+          citas={citas}
           onSave={async (nuevaCita) => {
             try {
               await editarCita(editAppointment.id, nuevaCita);
@@ -1791,13 +2064,14 @@ const AdminCalendarContent = () => {
       {/* Modal para ver citas del día */}
       {showDayCitasModal && (
         <div className="modal-overlay" onClick={() => setShowDayCitasModal(false)}>
-          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', zIndex: 10, position: 'relative' }}>
-              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0, background: 'white', padding: '8px', borderRadius: '4px', border: '1px solid #204d47' }}>
+          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '0', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
+            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#204d47', borderRadius: '16px 16px 0 0', padding: '24px 32px' }}>
+              <h3 style={{ color: '#ffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
                 Citas para el día {selectedDate ? selectedDate.toLocaleDateString('es-MX') : ''}
               </h3>
-              <button className="close-btn" onClick={() => setShowDayCitasModal(false)} style={{ fontSize: '1.5rem', background: 'white', border: '1px solid #204d47', color: '#204d47', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px' }}>×</button>
+              <button className="close-btn" onClick={() => setShowDayCitasModal(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}>×</button>
             </div>
+            <div style={{ padding: '0 32px 32px 32px' }}>
             <button style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 18px', fontWeight: 700, fontSize: '1rem', marginBottom: '18px', width: '100%' }} onClick={() => { setShowAppointmentForm(true); setShowDayCitasModal(false); }}>+ Nueva Cita</button>
             {citasDelDia.length === 0 ? (
               <p>No hay citas para este día.</p>
@@ -1920,6 +2194,7 @@ const AdminCalendarContent = () => {
                 ))}
               </ul>
             )}
+            </div>
           </div>
         </div>
       )}

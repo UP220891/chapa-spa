@@ -132,10 +132,12 @@ const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
         const API_URL = process.env.NEXT_PUBLIC_API_URL;
         const res = await fetch(`${API_URL}/api/citas`);
         const data = await res.json();
-        setCitasExistentes(data);
+        // Asegurar que data sea un array
+        setCitasExistentes(Array.isArray(data) ? data : []);
         console.log('Citas existentes:', data);
       } catch (error) {
         console.error('Error al cargar citas:', error);
+        setCitasExistentes([]); // Establecer array vacío en caso de error
       }
     }
     cargarCitas();
@@ -144,6 +146,9 @@ const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
   // Verificar si una fecha y hora específica está disponible
   const verificarDisponibilidad = (fecha: string, hora: string): boolean => {
     if (!fecha || !hora) return false;
+    
+    // Asegurar que citasExistentes sea un array
+    if (!Array.isArray(citasExistentes)) return true;
     
     // Buscar si ya existe una cita para esa fecha y hora
     const citaExistente = citasExistentes.find(cita => {
@@ -169,6 +174,9 @@ const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
   // Obtener horas ocupadas para una fecha específica
   const getHorasOcupadas = (fecha: string): string[] => {
     if (!fecha) return [];
+    
+    // Asegurar que citasExistentes sea un array
+    if (!Array.isArray(citasExistentes)) return [];
     
     return citasExistentes
       .filter(cita => {
@@ -338,20 +346,31 @@ const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
     doc.setFont("helvetica", "bold");
     doc.text("DATOS DEL CLIENTE", 25, 72);
     
-    // Datos del cliente con iconos simulados
+    // Datos del cliente con formato más limpio
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0); // Negro
     
-    // Círculos decorativos para los datos
-    doc.setFillColor(224, 241, 238); // #e0f1ee
-    doc.circle(22, 82, 2, 'F');
-    doc.circle(22, 87, 2, 'F');
-    doc.circle(22, 92, 2, 'F');
+    // Usar viñetas simples en lugar de círculos
+    doc.setFillColor(53, 122, 108); // #357a6c
+    doc.rect(25, 81, 2, 2, 'F');
+    doc.rect(25, 86, 2, 2, 'F');
+    doc.rect(25, 91, 2, 2, 'F');
     
-    doc.text(`👤 Nombre: ${datosReserva.nombre}`, 30, 84);
-    doc.text(`📧 Email: ${datosReserva.email}`, 30, 89);
-    doc.text(`📱 Teléfono: ${datosReserva.numero}`, 30, 94);
+    doc.setFont("helvetica", "bold");
+    doc.text("NOMBRE:", 30, 84);
+    doc.setFont("helvetica", "normal");
+    doc.text(datosReserva.nombre, 65, 84);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("EMAIL:", 30, 89);
+    doc.setFont("helvetica", "normal");
+    doc.text(datosReserva.email, 60, 89);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("TELEFONO:", 30, 94);
+    doc.setFont("helvetica", "normal");
+    doc.text(datosReserva.numero, 75, 94);
     
     // SECCIÓN DETALLES DE LA CITA
     doc.setFillColor(248, 252, 251);
@@ -370,30 +389,44 @@ const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0);
     
-    // Círculos decorativos
-    doc.setFillColor(224, 241, 238);
-    doc.circle(22, 128, 2, 'F');
-    doc.circle(22, 136, 2, 'F');
-    doc.circle(22, 144, 2, 'F');
+    // Viñetas simples
+    doc.setFillColor(53, 122, 108); // #357a6c
+    doc.rect(25, 127, 2, 2, 'F');
+    doc.rect(25, 135, 2, 2, 'F');
+    doc.rect(25, 143, 2, 2, 'F');
     
-    doc.text(`🌿 Servicio: ${datosReserva.servicio}`, 30, 130);
-    doc.text(`📅 Fecha: ${new Date(datosReserva.fecha).toLocaleDateString('es-ES', { 
+    doc.setFont("helvetica", "bold");
+    doc.text("SERVICIO:", 30, 130);
+    doc.setFont("helvetica", "normal");
+    doc.text(datosReserva.servicio, 80, 130);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("FECHA:", 30, 138);
+    doc.setFont("helvetica", "normal");
+    doc.text(new Date(datosReserva.fecha).toLocaleDateString('es-ES', { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
-    })}`, 30, 138);
-    doc.text(`🕐 Hora: ${datosReserva.hora}`, 30, 146);
+    }), 65, 138);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("HORA:", 30, 146);
+    doc.setFont("helvetica", "normal");
+    doc.text(datosReserva.hora, 60, 146);
     
     if (datosReserva.notas) {
-      doc.setFillColor(224, 241, 238);
-      doc.circle(22, 152, 2, 'F');
-      doc.text(`📝 Notas: ${datosReserva.notas}`, 30, 154);
+      doc.setFillColor(53, 122, 108); // #357a6c
+      doc.rect(25, 151, 2, 2, 'F');
+      doc.setFont("helvetica", "bold");
+      doc.text("NOTAS:", 30, 154);
+      doc.setFont("helvetica", "normal");
+      doc.text(datosReserva.notas, 65, 154);
     }
     
     // INFORMACIÓN DEL SPA CON ESTILO
     doc.setFillColor(32, 77, 71); // #204d47
-    doc.rect(15, 165, 180, 40, 'F');
+    doc.rect(15, 165, 180, 50, 'F');
     
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(14);
@@ -403,44 +436,57 @@ const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(224, 241, 238); // #e0f1ee
-    doc.text("📍 Dirección: Av. Relajación 123, Centro de Bienestar", 25, 187);
-    doc.text("📞 Teléfono: +52 (555) 123-4567", 25, 194);
-    doc.text("✉️ Email: contacto@chapaspa.com", 25, 201);
+    
+    // Información del spa con formato más limpio
+    doc.setFont("helvetica", "bold");
+    doc.text("DIRECCION:", 25, 187);
+    doc.setFont("helvetica", "normal");
+    doc.text(" Edificio Torre Plaza Bosques\nAguascalientes, Ags. 20342", 25, 194);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("TELEFONO:", 25, 201);
+    doc.setFont("helvetica", "normal");
+    doc.text("+52 (449) 123-4567", 25, 208);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("EMAIL:", 110, 201);
+    doc.setFont("helvetica", "normal");
+    doc.text("contacto@chapaspa.com", 110, 208);
     
     // FOOTER ELEGANTE
     // Línea decorativa
     doc.setDrawColor(53, 122, 108); // #357a6c
     doc.setLineWidth(2);
-    doc.line(15, 220, 195, 220);
+    doc.line(15, 225, 195, 225);
     
     // Política de cancelación con mejor diseño
     doc.setTextColor(32, 77, 71); // #204d47
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("POLÍTICA DE CANCELACIÓN", 105, 230, { align: "center" });
+    doc.text("POLÍTICA DE CANCELACIÓN", 105, 235, { align: "center" });
     
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(80, 80, 80); // Gris oscuro
-    doc.text("Por favor, cancele su cita con al menos 24 horas de anticipación.", 105, 238, { align: "center" });
-    doc.text("Agradecemos su preferencia y esperamos brindarle una experiencia excepcional.", 105, 245, { align: "center" });
+    doc.text("Por favor, cancele su cita con al menos 24 horas de anticipación.", 105, 243, { align: "center" });
+    doc.text("Agradecemos su preferencia y esperamos brindarle una experiencia excepcional.", 105, 250, { align: "center" });
     
     // Elemento decorativo final
     doc.setFillColor(224, 241, 238); // #e0f1ee
-    doc.rect(90, 252, 30, 3, 'F');
+    doc.rect(90, 257, 30, 3, 'F');
     
     // Fecha de generación elegante
     doc.setTextColor(120, 120, 120); // Gris medio
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.text(`Documento generado el ${new Date().toLocaleString('es-ES')}`, 105, 265, { align: "center" });
+    doc.text(`Documento generado el ${new Date().toLocaleString('es-ES')}`, 105, 270, { align: "center" });
     
     // Código de confirmación simulado
     const codigoConfirmacion = `CHA-${Date.now().toString().slice(-6)}`;
     doc.setTextColor(53, 122, 108); // #357a6c
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text(`Código de confirmación: ${codigoConfirmacion}`, 105, 275, { align: "center" });
+    doc.text(`Código de confirmación: ${codigoConfirmacion}`, 105, 280, { align: "center" });
     
     // Guardar el PDF con nombre más descriptivo
     const fechaFormateada = datosReserva.fecha.replace(/-/g, '');
@@ -650,9 +696,11 @@ const CitasForm: React.FC<CitasFormProps> = ({ usuario: usuarioProp }) => {
         const API_URL = process.env.NEXT_PUBLIC_API_URL;
         const res = await fetch(`${API_URL}/api/citas`);
         const data = await res.json();
-        setCitasExistentes(data);
+        // Asegurar que data sea un array
+        setCitasExistentes(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error al recargar citas:', error);
+        setCitasExistentes([]); // Establecer array vacío en caso de error
       }
       
       // Generar PDF con los datos de la reserva

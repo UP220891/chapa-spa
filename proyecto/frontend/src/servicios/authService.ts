@@ -27,6 +27,11 @@ export interface AuthResponse {
     tipo_usuario: string;
     id_especialidad?: number;
     id_horarios?: number[];
+    telefono?: string;
+    fecha_nacimiento?: string;
+    especialidad?: string;
+    horarios?: any[];
+    [key: string]: any; // Para permitir propiedades adicionales
   };
 }
 
@@ -72,7 +77,9 @@ export function getUserFromToken(): any {
       id: payload.id_cliente || payload.id_empleado || payload.id || 0,
       nombre: payload.nombre_cliente || payload.nombre_empleado || payload.nombre || '',
       email: payload.email || '',
-      tipo: payload.tipo_usuario || 'cliente'
+      tipo: payload.tipo_usuario || 'cliente',
+      // Incluir todos los campos adicionales del token
+      ...payload
     };
   } catch {
     return null;
