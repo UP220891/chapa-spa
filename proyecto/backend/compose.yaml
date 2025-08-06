@@ -1,0 +1,21 @@
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chapa-backend
+    container_name: chapa-backend
+    ports:
+      - "${PORT}:${PORT}"
+      - "1433:1433"
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_SERVER: host.docker.internal
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT}
+      DB_ENCRYPT: ${DB_ENCRYPT}
+      DB_TRUST_SERVER_CERT: ${DB_TRUST_SERVER_CERT}
+      PORT: ${PORT}
+      JWT_SECRET: ${JWT_SECRET}
