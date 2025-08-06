@@ -820,30 +820,53 @@ function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, ser
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-        <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ color: '#ffffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
+        <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', zIndex: 10, position: 'relative' }}>
+          <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0, background: 'white', padding: '8px', borderRadius: '4px', border: '1px solid #204d47' }}>
             Editar cita
           </h3>
-          <button className="close-btn" onClick={onClose} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
+          <button className="close-btn" onClick={onClose} style={{ fontSize: '1.5rem', background: 'white', border: '1px solid #204d47', color: '#204d47', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px' }}>×</button>
         </div>
         <form onSubmit={async (e) => {
           e.preventDefault();
+          
+          // Encontrar el id_horario basado en la hora seleccionada
+          const horarioSeleccionado = horasDisponibles.find(h => {
+            let horaInicio = '';
+            if (h.hora_inicio && h.hora_inicio.includes('T')) {
+              horaInicio = h.hora_inicio.split('T')[1].substring(0,5);
+            } else if (h.hora_inicio) {
+              horaInicio = h.hora_inicio.split(':').slice(0,2).join(':');
+            }
+            return horaInicio === form.hora;
+          });
+          
+          const idHorario = horarioSeleccionado ? horarioSeleccionado.id_horario : form.hora;
+          
+          console.log('Datos a enviar:', {
+            cliente: form.cliente,
+            telefono: form.telefono,
+            id_servicio: form.servicio,
+            id_horario: idHorario,
+            notas: form.notas,
+            id_estado_cita: form.estado
+          });
+          
           await onSave({
             cliente: form.cliente,
             telefono: form.telefono,
             id_servicio: form.servicio,
-            hora: form.hora,
+            id_horario: idHorario,
             notas: form.notas,
             id_estado_cita: form.estado
           });
         }}>
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label>Cliente</label>
-            <input type="text" value={form.cliente} onChange={e => setForm(f => ({ ...f, cliente: e.target.value }))} required />
+            <input type="text" value={form.cliente} onChange={e => setForm(f => ({ ...f, cliente: e.target.value }))} required style={{ marginBottom: '8px', width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
           </div>
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label>Teléfono</label>
-            <input type="tel" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} required />
+            <input type="tel" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} required style={{ marginBottom: '8px', width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
           </div>
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label>Servicio</label>
@@ -879,7 +902,17 @@ function EditCitaModal({ editAppointment, onClose, onSave, horasDisponibles, ser
           </div>
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label>Notas</label>
-            <textarea value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} rows={2} />
+            <textarea value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} rows={2} style={{ marginBottom: '8px', width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical' }} />
+          </div>
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label>Estado</label>
+            <select value={form.estado} onChange={e => setForm(f => ({ ...f, estado: Number(e.target.value) }))} required style={{ marginBottom: '8px', width: '100%' }}>
+              <option value={1}>Programada</option>
+              <option value={2}>Confirmada</option>
+              <option value={3}>En proceso</option>
+              <option value={4}>Completada</option>
+              <option value={5}>Cancelada</option>
+            </select>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button type="button" className="btn-cancel-form" onClick={onClose} style={{ background: '#eee', color: '#204d47', borderRadius: '6px', padding: '8px 16px', border: 'none', fontWeight: 700 }}>Cancelar</button>
@@ -1568,11 +1601,11 @@ const AdminCalendarContent = () => {
       {showAppointmentForm && (
         <div className="modal-overlay" onClick={handleCloseAppointmentForm}>
           <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#ffffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
+            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', zIndex: 10, position: 'relative' }}>
+              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0, background: 'white', padding: '8px', borderRadius: '4px', border: '1px solid #204d47' }}>
                 Nueva cita para el día {selectedDate ? selectedDate.toLocaleDateString('es-MX') : ''}
               </h3>
-              <button className="close-btn" onClick={handleCloseAppointmentForm} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
+              <button className="close-btn" onClick={handleCloseAppointmentForm} style={{ fontSize: '1.5rem', background: 'white', border: '1px solid #204d47', color: '#204d47', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px' }}>×</button>
             </div>
             {/* Si es domingo, mostrar mensaje de cerrado */}
             {selectedDate && selectedDate.getDay() === 0 ? (
@@ -1710,10 +1743,45 @@ const AdminCalendarContent = () => {
           editAppointment={editAppointment}
           onClose={() => setShowEditForm(false)}
           onSave={async (nuevaCita) => {
-            await editarCita(editAppointment.id, nuevaCita);
-            const citasActualizadas = await getCitas();
-            setCitas(citasActualizadas.map(mapearCita));
-            setShowEditForm(false);
+            try {
+              await editarCita(editAppointment.id, nuevaCita);
+              
+              // Recargar todas las citas desde el backend primero
+              const citasActualizadas = await getCitas();
+              const citasMapeadas = citasActualizadas.map(mapearCita);
+              setCitas(citasMapeadas);
+              
+              // Cerrar el modal de edición
+              setShowEditForm(false);
+              
+              // Si había una fecha seleccionada, reabrir el modal del día con datos actualizados
+              if (selectedDate) {
+                const dateString = selectedDate.toISOString().split('T')[0];
+                const citasDiaActualizadas = citasMapeadas.filter(citaItem => {
+                  let fechaOriginal = '';
+                  if (citaItem.fecha && typeof citaItem.fecha === 'string') {
+                    if (/^\d{2}\/\d{2}\/\d{4}$/.test(citaItem.fecha)) {
+                      const [d, m, y] = citaItem.fecha.split('/');
+                      fechaOriginal = `${y}-${m}-${d}`;
+                    } else if (citaItem.fecha.includes('T')) {
+                      fechaOriginal = citaItem.fecha.split('T')[0];
+                    } else if (/^\d{4}-\d{2}-\d{2}$/.test(citaItem.fecha)) {
+                      fechaOriginal = citaItem.fecha;
+                    } else {
+                      fechaOriginal = citaItem.fecha.split(' ')[0];
+                    }
+                  }
+                  return fechaOriginal === dateString;
+                });
+                setCitasDelDia(citasDiaActualizadas);
+                setShowDayCitasModal(true); // Reabrir el modal del día
+              }
+              
+              console.log('Cita editada correctamente');
+            } catch (error) {
+              console.error('Error al editar cita:', error);
+              alert('Error al editar la cita');
+            }
           }}
           horasDisponibles={horarios}
           servicios={servicios}
@@ -1724,11 +1792,11 @@ const AdminCalendarContent = () => {
       {showDayCitasModal && (
         <div className="modal-overlay" onClick={() => setShowDayCitasModal(false)}>
           <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#ffffffff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
+            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', zIndex: 10, position: 'relative' }}>
+              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0, background: 'white', padding: '8px', borderRadius: '4px', border: '1px solid #204d47' }}>
                 Citas para el día {selectedDate ? selectedDate.toLocaleDateString('es-MX') : ''}
               </h3>
-              <button className="close-btn" onClick={() => setShowDayCitasModal(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
+              <button className="close-btn" onClick={() => setShowDayCitasModal(false)} style={{ fontSize: '1.5rem', background: 'white', border: '1px solid #204d47', color: '#204d47', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px' }}>×</button>
             </div>
             <button style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 18px', fontWeight: 700, fontSize: '1rem', marginBottom: '18px', width: '100%' }} onClick={() => { setShowAppointmentForm(true); setShowDayCitasModal(false); }}>+ Nueva Cita</button>
             {citasDelDia.length === 0 ? (
@@ -1764,7 +1832,11 @@ const AdminCalendarContent = () => {
                         <strong style={{ color: '#204d47' }}>Costo:</strong> ${cita.costo}<br />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                        <button style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 16px', fontWeight: 700, cursor: 'pointer', marginBottom: '4px' }} title="Editar cita (modifica datos)" onClick={() => { setEditAppointment(cita); setShowEditForm(true); setShowDayCitasModal(false); }}>Editar</button>
+                        <button style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 16px', fontWeight: 700, cursor: 'pointer', marginBottom: '4px' }} title="Editar cita (modifica datos)" onClick={() => { 
+                          setEditAppointment(cita); 
+                          setShowEditForm(true); 
+                          setShowDayCitasModal(false); // Cerrar el modal del día cuando se abre editar
+                        }}>Editar</button>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '16px 0 0 0', justifyContent: 'center' }}>
@@ -1784,10 +1856,60 @@ const AdminCalendarContent = () => {
                           }}
                           title={estado.label === 'Cancelada' ? 'Solo cambia el estado, no elimina la cita' : `Cambiar estado a ${estado.label}`}
                           onClick={async () => {
-                            await editarCita(cita.id, { id_estado_cita: estado.value });
-                            const citasActualizadas = await getCitas();
-                            setCitas(citasActualizadas.map(mapearCita));
-                            setShowDayCitasModal(false);
+                            try {
+                              // Actualizar inmediatamente la cita en el modal (optimistic update)
+                              setCitasDelDia(prevCitas => 
+                                prevCitas.map(citaItem => 
+                                  citaItem.id === cita.id 
+                                    ? { ...citaItem, estado: estado.label }
+                                    : citaItem
+                                )
+                              );
+                              
+                              // Hacer la llamada al backend
+                              await editarCita(cita.id, { id_estado_cita: estado.value });
+                              
+                              // Actualizar también el estado principal de citas
+                              setCitas(prevCitas => 
+                                prevCitas.map(citaItem => 
+                                  citaItem.id === cita.id 
+                                    ? { ...citaItem, estado: estado.label }
+                                    : citaItem
+                                )
+                              );
+                              
+                              console.log(`Estado de cita ${cita.id} cambiado a: ${estado.label}`);
+                            } catch (error) {
+                              // Si hay error, revertir el cambio optimista
+                              console.error('Error al cambiar estado de cita:', error);
+                              alert('Error al cambiar el estado de la cita');
+                              
+                              // Recargar las citas para restaurar el estado correcto
+                              const citasActualizadas = await getCitas();
+                              const citasMapeadas = citasActualizadas.map(mapearCita);
+                              setCitas(citasMapeadas);
+                              
+                              if (selectedDate) {
+                                const dateString = selectedDate.toISOString().split('T')[0];
+                                const citasDiaRestauradas = citasMapeadas.filter(citaItem => {
+                                  let fechaOriginal = '';
+                                  if (citaItem.fecha && typeof citaItem.fecha === 'string') {
+                                    if (/^\d{2}\/\d{2}\/\d{4}$/.test(citaItem.fecha)) {
+                                      const [d, m, y] = citaItem.fecha.split('/');
+                                      fechaOriginal = `${y}-${m}-${d}`;
+                                    } else if (citaItem.fecha.includes('T')) {
+                                      fechaOriginal = citaItem.fecha.split('T')[0];
+                                    } else if (/^\d{4}-\d{2}-\d{2}$/.test(citaItem.fecha)) {
+                                      fechaOriginal = citaItem.fecha;
+                                    } else {
+                                      fechaOriginal = citaItem.fecha.split(' ')[0];
+                                    }
+                                  }
+                                  return fechaOriginal === dateString;
+                                });
+                                setCitasDelDia(citasDiaRestauradas);
+                              }
+                            }
                           }}
                         >
                           {estado.label}
@@ -1798,21 +1920,6 @@ const AdminCalendarContent = () => {
                 ))}
               </ul>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal para nuevo cliente */}
-      {showClientForm && (
-        <div className="modal-overlay" onClick={() => setShowClientForm(false)}>
-          <div className="modal-content appointment-form-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', margin: '40px auto', background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 24px rgba(31,38,135,0.13)' }}>
-            <div className="modal-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#204d47', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>
-                Nuevo Cliente
-              </h3>
-              <button className="close-btn" onClick={() => setShowClientForm(false)} style={{ fontSize: '1.5rem', background: 'none', border: 'none', color: '#204d47', cursor: 'pointer' }}>×</button>
-            </div>
-            <ClienteForm onClose={() => setShowClientForm(false)} onClienteCreado={recargarClientes} />
           </div>
         </div>
       )}
